@@ -1,6 +1,6 @@
 {
-  "name": "微信读书工具箱",
-  "displayName": "",
+  "name": "weread-toolbox",
+  "displayName": "微信读书工具箱",
   "version": "0.0.1",
   "description": "微信读书工具箱，支持导出图文 Markdown 笔记。",
   "author": "三此君",
@@ -22,11 +22,19 @@
     "@types/react-dom": "18.0.11",
     "prettier": "2.8.7",
     "typescript": "5.0.3",
-    "@plasmohq/prettier-plugin-sort-imports": "3.6.4"
+    "@plasmohq/prettier-plugin-sort-imports": "3.6.4",
+    "jquery": "^3.6.0",
+    "lodash.escaperegexp": "^4.1.2"
   },
   "manifest": {
+    "homepage_url": "https://github.com/sancijun/wereader",
+    "permissions": [
+      "cookies",
+      "storage"
+    ],
     "host_permissions": [
-      "https://*/*"
+      "*://i.weread.qq.com/*",
+      "*://weread.qq.com/web/reader/*"
     ]
   }
 }
