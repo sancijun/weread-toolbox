@@ -1,14 +1,14 @@
 import type { PlasmoCSConfig } from "plasmo"
 
 import $ from 'jquery';
-import { copy, getText, resetScreen, setScreen, showToast, sleep } from "./content-utils";
+import { getText, resetScreen, setScreen, showToast } from "./content-utils";
 import { initDomChangeObserver } from "./content-dom";
 import { initMessage } from "./content-message";
-import { loadData } from "./content-exporter";
+import { exportData } from "./content-exporter";
 
 export const config: PlasmoCSConfig = {
     matches: ["*://weread.qq.com/web/reader/*"],
-    run_at: "document_idle",
+    run_at: "document_end",
     all_frames: true
 }
 
@@ -33,7 +33,7 @@ $(document).ready(function () {
     }
 
     var _right_nav = $(`
-        <a id="webook_master" href="javascript:" title="助手" class="readerControls_item">
+        <a id="webook_master" title="助手" class="readerControls_item">
             <span class="" style="font-weight: bold; color: ${rightColor} ;">助手</span>
         </a>
     `)
@@ -103,17 +103,7 @@ $(document).ready(function () {
             })
             // 导出笔记
             $('#webook_export_note').click(function (idx, ele) {
-                loadData()
-                // 通知 background.js 执行 getAllMarks
-                chrome.runtime.sendMessage(
-                    { type: "getAllMarks", chapterImgData: JSON.parse(localStorage.getItem('chapterImgData') ?? '{}') },
-                    function (resp) {
-                        console.log('getAllMarks resp', resp)
-                        copy(resp.content, 'text/plain;charset=UTF-8');
-                        showToast('👏 已成功导出笔记到剪贴板')
-                    }
-                );
-
+                exportData();
             })
 
             $('#webook_player').click(function () {
@@ -241,7 +231,7 @@ $(document).ready(function () {
                 }
                 $('#webook_master span').css('color', rightColor)
             })
-        }, 5000)
+        }, 3000)
 
         chrome.storage.local.get('webook_screen', function (result) {
             var screen = result.webook_screen

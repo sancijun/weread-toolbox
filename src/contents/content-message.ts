@@ -1,9 +1,17 @@
+import type { PlasmoCSConfig } from "plasmo";
 import { copy, showToast } from "./content-utils";
 import $ from "jquery";
 
 /**
  * 监听从背景页发过来的消息，如果是 alert 消息，则调用 mySweetAlert 显示通知
  */
+
+export const config: PlasmoCSConfig = {
+    matches: ["*://weread.qq.com/web/reader/*"],
+    run_at: "document_start",
+    all_frames: true
+}
+
 function initMessage() {
     console.log('initMessage');
     // 监听后台消息
@@ -33,8 +41,10 @@ function initMessage() {
     window.addEventListener('message', function (event) {
         if (event.source === window && event.data && event.data.action === 'sendBookId') {
             const bookId = event.data.bookId;
+            const title = event.data.title;
             console.log('content script received bookId:', bookId);
             if (chrome && chrome.runtime && chrome.runtime.sendMessage) {
+                chrome.storage.local.set({title: bookId});
                 // 将 bookId 发送给后台脚本
                 chrome.runtime.sendMessage({ type: 'receiveBookId', bookId: bookId });
             }

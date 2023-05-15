@@ -7,7 +7,7 @@ async function featchBookmarks(bookId: string) {
     return data;
 }
 
-async function featchChapInfos(bookId: string){
+async function featchChapInfos(bookId: string) {
     const data = await getJson(`https://i.weread.qq.com/book/chapterInfos?bookIds=${bookId}&synckeys=0`);
     console.log(data);
     return data;

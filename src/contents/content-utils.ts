@@ -1,5 +1,12 @@
 
 import $ from 'jquery';
+import type { PlasmoCSConfig } from 'plasmo';
+
+export const config: PlasmoCSConfig = {
+    matches: ["*://weread.qq.com/web/reader/*"],
+    run_at: "document_end",
+    all_frames: true
+}
 
 function showToast(msg: string): void {
     const toastUI = `<div id="webook_toast" style="position: fixed; background-color: #f78d8d; color: #fff; border-radius: 6px; padding: 2px 10px; display: block; text-align: center; margin: 0 auto;left:50%;transform: translateX(-50%);z-index:99999; margin-top: 10px;">${msg}</div>`;

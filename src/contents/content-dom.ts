@@ -1,5 +1,13 @@
 /* 监听 DOM 变化，获取预加载的图片 */
 
+import type { PlasmoCSConfig } from "plasmo";
+
+export const config: PlasmoCSConfig = {
+	matches: ["*://weread.qq.com/web/reader/*"],
+	run_at: "document_start",
+	all_frames: true
+}
+
 function initDomChangeObserver() {
 	const observer = new MutationObserver((mutationsList: MutationRecord[]) => {
 		console.log("mutationsList======")
@@ -10,21 +18,23 @@ function initDomChangeObserver() {
 						// 获取当前章节标题
 						const chapterTitle = document.querySelector('span.readerTopBar_title_chapter')?.textContent?.replace(/　|\s/g, '') ?? '';
 						// 获取已存储的章节图片数据
-						let chapterImgData = JSON.parse(localStorage.getItem('chapterImgData') ?? '{}');
+						chrome.storage.local.get('chapterImgData', (result: any) => {
+							const chapterImgData = result.chapterImgData || {};
 
-						// 获取当前预渲染容器中的所有图片数据
-						const imgElements = (node as Element).querySelectorAll('img');
-						const imgData: { [key: string]: string } = {};
-						imgElements.forEach((img: HTMLImageElement) => {
-							const dataWrCo = img.getAttribute('data-wr-co');
-							const dataSrc = img.getAttribute('data-src');
-							if (dataWrCo && dataSrc) {
-								chapterImgData[dataWrCo] = dataSrc;
-							}
+							// 获取当前预渲染容器中的所有图片数据
+							const imgElements = (node as Element).querySelectorAll('img');
+							const imgData: { [key: string]: string } = {};
+							imgElements.forEach((img: HTMLImageElement) => {
+								const dataWrCo = img.getAttribute('data-wr-co');
+								const dataSrc = img.getAttribute('data-src');
+								if (dataWrCo && dataSrc) {
+									chapterImgData[dataWrCo] = dataSrc;
+								}
+							});
+
+							// 将更新后的数据存储到 chrome.storage.local 中
+							chrome.storage.local.set({ chapterImgData: chapterImgData });
 						});
-
-						// 将更新后的数据存储到 localStorage 中
-						localStorage.setItem('chapterImgData', JSON.stringify(chapterImgData));
 					}
 				});
 			}

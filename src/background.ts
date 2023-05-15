@@ -12,12 +12,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             exportBookMarks(msg.chapterImgData).then((content) => {
                 sendResponse({ content: content });
             });
-            break;
+            return true;
         case "getCurChapMarks":
             exportBookMarks(msg.chapterImgData, msg.curChapterTitle).then((content) => {
                 sendResponse({ content: content });
             });
-            break;
+            return true;
         case 'receiveBookId':
             chrome.storage.local.set({ [tabId]: msg.bookId });
             console.log('receiveBookId', msg.bookId, tabId);
