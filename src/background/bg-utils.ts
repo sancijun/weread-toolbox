@@ -1,7 +1,7 @@
 
 
 // Send message to content script
-async function sendMssage(sendMsg: { tabId?: number; message: any; }) {
+async function sendMessage(sendMsg: { tabId?: number; message: any; }) {
     return new Promise((res, rej) => {
         let callbackHandler = (response: any) => {
             if (chrome.runtime.lastError) return rej();
@@ -19,4 +19,12 @@ async function sendMssage(sendMsg: { tabId?: number; message: any; }) {
     }).catch((error) => { console.log(error); });
 }
 
-export { sendMssage }
+function getLocalStorageData(key) {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(key, (result) => {
+        resolve(result[key]);
+      });
+    });
+}
+
+export { sendMessage, getLocalStorageData }

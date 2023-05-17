@@ -13,6 +13,13 @@ async function featchChapInfos(bookId: string) {
     return data;
 }
 
+async function featchBestBookmarks(bookId: string) {
+    const url = `https://i.weread.qq.com/book/bestbookmarks?bookId=${bookId}`;
+    const data = await getJson(url);
+    console.log(data);
+    return data;
+}
+
 async function getJson(url: string) {
     try {
         let resp = await fetch(url, {
@@ -27,4 +34,4 @@ async function getJson(url: string) {
     }
 }
 
-export { featchBookmarks, featchChapInfos };
+export { featchBookmarks, featchChapInfos, featchBestBookmarks };

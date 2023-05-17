@@ -8,20 +8,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     let tabId: number | undefined;
     if (sender && sender.tab) tabId = sender.tab.id;
     switch (msg.type) {
-        case "getAllMarks":
-            exportBookMarks(msg.chapterImgData).then((content) => {
+        case "getBookMarks":
+            exportBookMarks(msg.title, msg.isBestBookMarks).then((content) => {
                 sendResponse({ content: content });
             });
             return true;
         case "getCurChapMarks":
-            exportBookMarks(msg.chapterImgData, msg.curChapterTitle).then((content) => {
+            exportBookMarks(msg.title, msg.curChapterTitle).then((content) => {
                 sendResponse({ content: content });
             });
             return true;
-        case 'receiveBookId':
-            chrome.storage.local.set({ [tabId]: msg.bookId });
-            console.log('receiveBookId', msg.bookId, tabId);
-            break;
         case 'fetch':
             if (!msg.url) return;
             fetch(msg.url, msg.init).then(resp => {

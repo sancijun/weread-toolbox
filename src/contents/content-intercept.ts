@@ -6,7 +6,7 @@ export const config: PlasmoCSConfig = {
   run_at: "document_idle",
 }
 
-// 拦截并修改Ajax请求
+// 拦截并修改Ajax请求，当请求的URL包含'/web/book/info'时，向页面发送消息，将 bookId 传递给content页面
 let originalXHR = window.XMLHttpRequest;
 window.XMLHttpRequest = function () {
   const xhr = new originalXHR();
@@ -34,8 +34,9 @@ window.XMLHttpRequest = function () {
       const response = JSON.parse(xhr.responseText);
       if (response.title && response.bookId) {
         // 向页面发送消息，将 bookId 传递给页面
-        console.log(`xhr.onload bookId: ${response.bookId}`);
-        window.postMessage({ action: 'sendBookId', bookId: response.bookId }, '*');
+        let title = response.title.replace(/[\u3000\s]/g, '');
+        console.log(`xhr.onload title: ${title} bookId: ${response.bookId}`);
+        window.postMessage({ action: 'sendBookId', title: title, bookId: response.bookId }, '*');
       }
     }
 

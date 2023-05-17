@@ -1,5 +1,6 @@
 
 import $ from 'jquery';
+import { message } from 'antd';
 import type { PlasmoCSConfig } from 'plasmo';
 
 export const config: PlasmoCSConfig = {
@@ -16,12 +17,13 @@ function showToast(msg: string): void {
     }, 1500);
 }
 
-function copy(str: string, mimeType: string): void {
-    document.oncopy = function (event: ClipboardEvent) {
-        event.clipboardData?.setData(mimeType, str);
-        event.preventDefault();
-    };
-    document.execCommand('copy', false, null);
+/* 复制文本内容 */
+async function copy(targetText: string): Promise<void> {
+    try {
+        await navigator.clipboard.writeText(targetText);
+    } catch (err) {
+        console.log('Failed to copy: ', err);
+    }
 }
 
 function setScreen(px: number): void {
@@ -77,4 +79,9 @@ function simulateClick(element: HTMLElement, init = {}): void {
     element.dispatchEvent(mouseEvent);
 }
 
-export { showToast, copy, setScreen, resetScreen, getText, sleep, simulateClick };
+function getBookTile(): string {
+    const title = $('.readerTopBar_title_link').text().replace(/[\u3000\s]/g, '');
+    return title;
+}
+
+export { showToast, copy, setScreen, resetScreen, getText, sleep, simulateClick, getBookTile };

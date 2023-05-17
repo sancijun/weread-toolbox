@@ -1,10 +1,10 @@
 import type { PlasmoCSConfig } from "plasmo"
 
 import $ from 'jquery';
-import { getText, resetScreen, setScreen, showToast } from "./content-utils";
+import { resetScreen, setScreen } from "./content-utils";
 import { initDomChangeObserver } from "./content-dom";
 import { initMessage } from "./content-message";
-import { exportData } from "./content-exporter";
+import { exportBookMarks } from "./content-exporter";
 
 export const config: PlasmoCSConfig = {
     matches: ["*://weread.qq.com/web/reader/*"],
@@ -14,7 +14,12 @@ export const config: PlasmoCSConfig = {
 
 initDomChangeObserver();
 initMessage();
+// 解除右键限制
+window.addEventListener("contextmenu",function(t) {
+    t.stopImmediatePropagation();
+},true);
 
+// 
 $(document).ready(function () {
 
     for (var i = 1; i < 99999; i++) {
@@ -56,14 +61,16 @@ $(document).ready(function () {
     <div id="webook_box" class="wr_dialog" style="display: none;">
       <div class="wr_dialog_mask"></div>
       <div class="wr_dialog_container wr_dialog_bg">
-        <a href="javascript:" class="wr_dialog_closeButton webook_dialog_closeButton">close</a>
+        <a class="wr_dialog_closeButton webook_dialog_closeButton">close</a>
         <div style="width: 200px;">
           <div style="margin-top: 40px; margin-bottom: 40px; display: flex; padding: 5px; font-size: 14px; align-items: center; flex-direction: column;">
 
-            <div class="webook_box_btn" id="webook_export_note" style="width: 140px; background-color: #2196F3; color: white; padding: 3px 10px; margin: 5px; cursor: pointer; border-radius: 4px;">
-              导出笔记到剪贴板
+            <div class="webook_box_btn" id="webook_export_all_note" style="width: 140px; background-color: #2196F3; color: white; padding: 3px 10px; margin: 5px; cursor: pointer; border-radius: 4px;">
+              导出全书笔记到剪贴板
             </div>
-
+            <div class="webook_box_btn" id="webook_export_best_note" style="width: 140px; background-color: #2196F3; color: white; padding: 3px 10px; margin: 5px; cursor: pointer; border-radius: 4px;">
+              导出热门笔记到剪贴板
+            </div>
             <div style="margin-top: 10px; color: #c7c6c6; font-size: 13px;">设置背景</div>
             <div style="display: flex; flex-direction: row; margin-top: 5px;">
               <div id="webook_ui_1" style="background-color: #e2e2e4; width: 24px; height: 24px; margin: 0 5px; cursor: pointer;" data-color="#e2e2e4"></div>
@@ -102,33 +109,13 @@ $(document).ready(function () {
                 $('#webook_assist_box').hide()
             })
             // 导出笔记
-            $('#webook_export_note').click(function (idx, ele) {
-                exportData();
+            $('#webook_export_all_note').click(function (idx, ele) {
+                exportBookMarks(false);
             })
-
-            $('#webook_player').click(function () {
-                let _content = document.body.getAttribute('data-bbq') + getText()
-                if (_content.length > 0) {
-                    chrome.runtime.sendMessage({ text: _content, action: 'speakText' }, function (resp) {
-                        showToast('👏 开始播放')
-                    })
-                } else {
-                    showToast('没找到本章的内容')
-                }
+            // 导出笔记
+            $('#webook_export_best_note').click(function (idx, ele) {
+                exportBookMarks(true);
             })
-
-            $('#webook_player_pause').click(function () {
-                chrome.runtime.sendMessage({ text: '', action: 'pauseText' }, function (resp) { })
-            })
-
-            $('#webook_player_continue').click(function () {
-                chrome.runtime.sendMessage({ text: '', action: 'continueText' }, function (resp) { })
-            })
-
-            $('#webook_player_stop').click(function () {
-                chrome.runtime.sendMessage({ text: '', action: 'stopText' }, function (resp) { })
-            })
-
             chrome.storage.local.get(['webook_ui'], function (result) {
                 let webook_ui = result.webook_ui
                 if (webook_ui) {
@@ -183,7 +170,7 @@ $(document).ready(function () {
                 chrome.storage.local.set({ 'webook_ui': 'webook_ui_1' })
                 set_webook_ui(_c)
             })
-
+            // 主题颜色
             $('#webook_ui_2').click(function (e) {
                 console.log('webook_ui_2')
                 let _c = $(this).data('color')
@@ -231,7 +218,7 @@ $(document).ready(function () {
                 }
                 $('#webook_master span').css('color', rightColor)
             })
-        }, 3000)
+        }, 1000)
 
         chrome.storage.local.get('webook_screen', function (result) {
             var screen = result.webook_screen

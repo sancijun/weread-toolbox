@@ -1,6 +1,7 @@
 import $ from 'jquery';
-import { copy, showToast, simulateClick, sleep } from "./content-utils";
+import { copy, getBookTile, simulateClick } from "./content-utils";
 import type { PlasmoCSConfig } from 'plasmo';
+import { message } from 'antd';
 
 export const config: PlasmoCSConfig = {
 	matches: ["*://weread.qq.com/web/reader/*"],
@@ -10,45 +11,52 @@ export const config: PlasmoCSConfig = {
 
 /**
  * 导出笔记：
- * 先挑战第一章，然后点击下一章直到最后一章，点击下一章的时候，页面会加载数据。
- * content-dom.js 会监听DOM变化，获取所有的图片数据，存入 localStorage。
+ * 先跳转第一章，然后点击下一章直到最后一章，点击下一章的时候，页面会加载数据。
+ * content-dom.js 会监听DOM变化，获取所有的图片数据，存入 Storage。
  * 最后通知 background.js 执行 getAllMarks，导出所有的笔记。
  */
-function exportData() {
-	localStorage.setItem('chapterImgData', '{}')
+function exportBookMarks(isBestBookMarks?: boolean) {
 	// 跳转到第一章
-	simulateClick($('.readerControls_item.catalog')[0]); // 点击目录显示之后才能够正常获取 BoundingClientRect
-	const readerCatalog: HTMLElement | null = document.querySelector('.readerCatalog');
+	const catalogItem = document.querySelector('.readerControls_item.catalog') as HTMLElement;
+	simulateClick(catalogItem);
+
+	const readerCatalog = document.querySelector('.readerCatalog');
 	if (readerCatalog) {
 		readerCatalog.removeAttribute('style');
-		simulateClick($('.chapterItem_link')[0]);
+		simulateClick(document.querySelector('.chapterItem_link'));
 		readerCatalog.setAttribute('style', 'display: none;');
 	}
-	// 点击下一章直到最后
-	setTimeout(clickReaderFooterButton, 1000);
 
-	// 导出本章
-	// chrome.runtime.sendMessage({type:"getMarksInCurChap", chapterImgData: JSON.parse(localStorage.getItem('chapterImgData') ?? '{}')})
+	simulateClick(catalogItem);
+
+	// 关闭助手弹窗
+	document.querySelector('.wr_dialog_container')?.classList.add('hide');
+
+	message.open({ key: 'export', type: 'loading', content: '数据加载中...', duration: 0 });
+
+	// 点击下一章直到最后
+	setTimeout(() => clickReaderFooterButton(isBestBookMarks), 1000);
 }
 
-function clickReaderFooterButton() {
+function clickReaderFooterButton(isBestBookMarks: boolean) {
 	const nextPageButton = document.querySelector('.readerFooter_button');
 	if (nextPageButton) {
-		showToast('数据加载中,请稍等后……');
 		var evt = new MouseEvent("click", { bubbles: true, cancelable: true, clientX: 100, clientY: 100 });
 		nextPageButton.dispatchEvent(evt);
-		setTimeout(clickReaderFooterButton, 1000);
+		setTimeout(() => clickReaderFooterButton(isBestBookMarks), 1000);
 	} else {
 		// 通知 background.js 执行 getAllMarks
-		chrome.runtime.sendMessage(
-			{ type: "getAllMarks", chapterImgData: JSON.parse(localStorage.getItem('chapterImgData') ?? '{}') },
-			function (resp) {
-				console.log('getAllMarks resp', resp)
-				copy(resp.content, 'text/plain;charset=UTF-8');
-				showToast('👏 已成功导出笔记到剪贴板');
-			}
-		);
+		const title = getBookTile();
+		chrome.runtime.sendMessage({ type: "getBookMarks", title: title, isBestBookMarks: isBestBookMarks }, function (resp) {
+			copy(resp.content).then(() => {
+				message.open({ key: 'export', type: 'success', content: '已成功导出到剪贴板!', duration: 2 });
+			});
+
+			// 关闭导出窗口
+			$('#webook_box').hide();
+			$('.wr_dialog_container').show();
+		});
 	}
 }
 
-export { exportData };
+export { exportBookMarks };

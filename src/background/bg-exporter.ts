@@ -1,19 +1,24 @@
-import { featchBookmarks, featchChapInfos } from "~background/bg-weread-api";
-import { sendMssage } from "./bg-utils";
+import { featchBestBookmarks, featchBookmarks, featchChapInfos } from "~background/bg-weread-api";
+import { getLocalStorageData, sendMessage } from "./bg-utils";
 
 /**
  * 导出所有标注
  * @param chapterImgData 
  * @param curChapterTitle 
  */
-export async function exportBookMarks(chapterImgData: {}, curChapterTitle?: string) {
+export async function exportBookMarks(bookTile: string, isBestBookMarks: boolean, curChapterTitle?: string) {
     try {
-        // 获取书籍 id
-        const bookId = await getBookIdFromStorage() as string;
-        console.log('getBookMarks', bookId);
+        // 获取书籍 id 和 图片数据
+        const bookId = await getLocalStorageData(`${bookTile}-bookId`) as string;
+        const imgData = await getLocalStorageData(`${bookTile}-ImgData`) as {};
+        console.log('bookId', bookId, 'imgData', imgData);
 
         // 获取标注并根据 chapterUid 分组
-        const { updated: marks = [] } = await featchBookmarks(bookId) || {};
+        const marks = isBestBookMarks
+            ? (await featchBestBookmarks(bookId))?.items || []
+            : (await featchBookmarks(bookId))?.updated || [];
+
+        console.log('marks', marks);
         const groupedMarks = marks.reduce((groupedMarks: Record<number, any[]>, mark: any) => {
             const { chapterUid } = mark;
             groupedMarks[chapterUid] = groupedMarks[chapterUid] || [];
@@ -39,7 +44,7 @@ export async function exportBookMarks(chapterImgData: {}, curChapterTitle?: stri
                     }
                 }
             }
-            res += traverseMarks(groupedMarks[chapterUid] || [], chapterImgData);
+            res += traverseMarks(groupedMarks[chapterUid] || [], imgData);
         }
 
         // 发送生成的 markdown 文本给前端

@@ -1,5 +1,6 @@
 import type { PlasmoCSConfig } from "plasmo";
 import { copy, showToast } from "./content-utils";
+import { Button, message } from 'antd';
 import $ from "jquery";
 
 /**
@@ -22,7 +23,7 @@ function initMessage() {
             // 通知后台正常显示了通知
             sendResponse({ succ: 1 });
         } else if (msg.content) {
-            copy(msg.content, 'text/plain;charset=UTF-8');
+            copy(msg.content);
         } else if (msg.isAddMask) {
             $('.mask_parent.need_remove').remove();
             let mask = $(`<div class='mask_parent need_remove'><div class="wr_mask wr_mask_Show"></div></div>`);
@@ -37,16 +38,15 @@ function initMessage() {
 
     });
 
-    // 接收interceptor传来的信息，转发给background
+    // 接收interceptor传来的信息，将bookId存入 storage
+    // 数据存入格式 title-bookId: bookId
     window.addEventListener('message', function (event) {
         if (event.source === window && event.data && event.data.action === 'sendBookId') {
             const bookId = event.data.bookId;
             const title = event.data.title;
-            console.log('content script received bookId:', bookId);
             if (chrome && chrome.runtime && chrome.runtime.sendMessage) {
-                chrome.storage.local.set({title: bookId});
-                // 将 bookId 发送给后台脚本
-                chrome.runtime.sendMessage({ type: 'receiveBookId', bookId: bookId });
+                const data = { [`${title}-bookId`]: bookId };
+                chrome.storage.local.set(data);
             }
         }
     });
