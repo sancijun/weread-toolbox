@@ -11,9 +11,9 @@
 [![Opera](https://img.shields.io/badge/-Opera-red?logo=Opera)](./build/opera-mv3-prod.zip)
 
 1. 首先，点击上方图标，下载你需要的浏览器插件压缩包。下载好后解压到某个文件夹（比如 `weread-toobox`）。
+![下载](https://img2023.cnblogs.com/blog/2740513/202305/2740513-20230530133915562-109362484.png)
 
-
-2.  接下来，进入 Chrome 在地址栏输入 `chrome://extensions/` 后回车，进入扩展管理页面。
+1.  接下来，进入 Chrome 在地址栏输入 `chrome://extensions/` 后回车，进入扩展管理页面。
 
 
 3.  进入页面后，先打开 `开发者模式`，再点击 `加载已解压的扩展程序`，找到前面解压得到的文件夹 `weread-toobox`，**单击**该文件夹，这时候文件夹被选中，点击 `选择文件夹` 即可。
