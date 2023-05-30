@@ -1,15 +1,13 @@
 import { exportBookMarks } from "~background/bg-exporter";
 
-
-
 // 监听消息
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     console.log('background onMessage: ', msg);
     let tabId: number | undefined;
     if (sender && sender.tab) tabId = sender.tab.id;
     switch (msg.type) {
-        case "getBookMarks":
-            exportBookMarks(msg.title, msg.isBestBookMarks).then((content) => {
+        case "exportBookMarks":
+            exportBookMarks(msg.title, msg.isHot).then((content) => {
                 sendResponse({ content: content });
             });
             return true;

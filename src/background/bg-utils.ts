@@ -19,12 +19,4 @@ async function sendMessage(sendMsg: { tabId?: number; message: any; }) {
     }).catch((error) => { console.log(error); });
 }
 
-function getLocalStorageData(key) {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(key, (result) => {
-        resolve(result[key]);
-      });
-    });
-}
-
-export { sendMessage, getLocalStorageData }
+export { sendMessage }

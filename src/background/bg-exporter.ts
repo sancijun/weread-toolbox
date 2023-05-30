@@ -1,12 +1,11 @@
 import { featchBestBookmarks, featchBookmarks, featchChapInfos } from "~background/bg-weread-api";
-import { getLocalStorageData, sendMessage } from "./bg-utils";
 
 /**
- * 导出所有标注
+ * 导出标注
  * @param chapterImgData 
  * @param curChapterTitle 
  */
-export async function exportBookMarks(bookTile: string, isBestBookMarks: boolean, curChapterTitle?: string) {
+export async function exportBookMarks(bookTile: string, isHot: boolean, curChapterTitle?: string) {
     try {
         // 获取书籍 id 和 图片数据
         const bookId = await getLocalStorageData(`${bookTile}-bookId`) as string;
@@ -14,7 +13,7 @@ export async function exportBookMarks(bookTile: string, isBestBookMarks: boolean
         console.log('bookId', bookId, 'imgData', imgData);
 
         // 获取标注并根据 chapterUid 分组
-        const marks = isBestBookMarks
+        const marks = isHot
             ? (await featchBestBookmarks(bookId))?.items || []
             : (await featchBookmarks(bookId))?.updated || [];
 
@@ -172,21 +171,12 @@ function regexpReplace(markText: string) {
     return markText
 }
 
-
-// 获取当前活动标签页的 bookId
-async function getBookIdFromStorage() {
-    let [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-    console.log('getBookIdFromStorage tab', tab);
-    if (tab && tab.url && tab.url.indexOf('//weread.qq.com/web/reader/') < 0) return null;
-    if (tab.id) {
-        return new Promise((res, rej) => {
-            chrome.storage.local.get(tab.id.toString(), function (data) {
-                const bookId = data[tab.id.toString()];
-                console.log('getBookIdFromStorage bookId', bookId);
-                return res(bookId.toString());
-            });
-        }).catch(err => { });
-    }
+async function getLocalStorageData(key) {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(key, (result) => {
+        resolve(result[key]);
+      });
+    });
 }
 
 // ======== 以下为配置项 ========

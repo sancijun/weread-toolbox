@@ -7,28 +7,39 @@
   "packageManager": "npm@9.6.2",
   "scripts": {
     "dev": "plasmo dev",
-    "build": "plasmo build",
+    "dev:firefox": "plasmo dev --target=firefox-mv2",
+    "dev:brave": "plasmo dev --target=brave-mv3",
+    "build": "run-s build:*",
+    "build:chrome": "plasmo build --zip",
+    "build:edge": "plasmo build --target=edge-mv3 --zip",
+    "build:firefox": "plasmo build --target=firefox-mv2 --zip",
+    "build:brave": "plasmo build --target=brave-mv3 --zip",
+    "build:opera": "plasmo build --target=opera-mv3 --zip",
     "package": "plasmo package"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^6.4.0",
+    "@fortawesome/free-brands-svg-icons": "^6.4.0",
+    "@fortawesome/react-fontawesome": "^0.2.0",
+    "@plasmohq/storage": "^0.14.0",
     "plasmo": "0.68.3",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
   "devDependencies": {
+    "@plasmohq/prettier-plugin-sort-imports": "3.6.4",
     "@types/chrome": "0.0.227",
     "@types/node": "18.15.11",
     "@types/react": "18.0.32",
-    "@types/react-dom": "18.0.11",
-    "prettier": "2.8.7",
-    "typescript": "5.0.3",
-    "@plasmohq/prettier-plugin-sort-imports": "3.6.4",
+    "@types/react-dom": "^18.0.11",
+    "antd": "5.5.0",
     "jquery": "^3.6.0",
     "lodash.escaperegexp": "^4.1.2",
-    "antd": "5.5.0"
+    "prettier": "2.8.7",
+    "typescript": "5.0.3"
   },
   "manifest": {
-    "homepage_url": "https://github.com/sancijun/wereader",
+    "homepage_url": "https://github.com/sancijun/weread-toolbox",
     "permissions": [
       "cookies",
       "storage"

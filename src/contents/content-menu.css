@@ -1,0 +1,22 @@
+.plasmo-csui-container button,
+.ant-float-btn-body {
+  background-color: inherit !important;
+  width: 48px !important;
+  height: 48px !important;
+}
+
+.plasmo-csui-container {
+  position: relative !important;
+  width: 48px !important;
+  height: 48px !important;
+}
+
+#plasmo-overlay-0>div {
+  position: absolute !important;
+  bottom: 0px !important;
+  left: 0px !important;
+}
+
+.plasmo-csui-container svg {
+  color: #686b6c !important;
+}

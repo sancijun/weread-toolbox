@@ -1,6 +1,5 @@
 
 import $ from 'jquery';
-import { message } from 'antd';
 import type { PlasmoCSConfig } from 'plasmo';
 
 export const config: PlasmoCSConfig = {
@@ -9,17 +8,10 @@ export const config: PlasmoCSConfig = {
     all_frames: true
 }
 
-function showToast(msg: string): void {
-    const toastUI = `<div id="webook_toast" style="position: fixed; background-color: #f78d8d; color: #fff; border-radius: 6px; padding: 2px 10px; display: block; text-align: center; margin: 0 auto;left:50%;transform: translateX(-50%);z-index:99999; margin-top: 10px;">${msg}</div>`;
-    $('body').prepend(toastUI);
-    setTimeout(function () {
-        $('#webook_toast').remove();
-    }, 1500);
-}
-
 /* 复制文本内容 */
 async function copy(targetText: string): Promise<void> {
     try {
+        console.log('copy', targetText);
         await navigator.clipboard.writeText(targetText);
     } catch (err) {
         console.log('Failed to copy: ', err);
@@ -68,6 +60,28 @@ function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function lightenColor(color, amount) {
+    // 移除 # 符号并解析颜色值
+    color = color.replace("#", "");
+    const hexColor = parseInt(color, 16);
+  
+    // 分离红、绿、蓝通道
+    const red = (hexColor >> 16) & 255;
+    const green = (hexColor >> 8) & 255;
+    const blue = hexColor & 255;
+  
+    // 调整亮度
+    const newRed = Math.round(red + (255 - red) * amount);
+    const newGreen = Math.round(green + (255 - green) * amount);
+    const newBlue = Math.round(blue + (255 - blue) * amount);
+  
+    // 将新的 RGB 值转换回十六进制表示
+    const newColor = "#" + ((1 << 24) + (newRed << 16) + (newGreen << 8) + newBlue).toString(16).slice(1);
+  
+    return newColor;
+}
+  
+
 /* 模拟点击 */
 function simulateClick(element: HTMLElement, init = {}): void {
     const clientRect = element.getBoundingClientRect();
@@ -84,4 +98,4 @@ function getBookTile(): string {
     return title;
 }
 
-export { showToast, copy, setScreen, resetScreen, getText, sleep, simulateClick, getBookTile };
+export { copy, setScreen, resetScreen, getText, sleep, simulateClick, getBookTile, lightenColor };
