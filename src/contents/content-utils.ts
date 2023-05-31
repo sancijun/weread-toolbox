@@ -11,7 +11,7 @@ export const config: PlasmoCSConfig = {
 /* 复制文本内容 */
 async function copy(targetText: string): Promise<void> {
     try {
-        console.log('copy', targetText);
+        // console.log('copy', targetText);
         await navigator.clipboard.writeText(targetText);
     } catch (err) {
         console.log('Failed to copy: ', err);

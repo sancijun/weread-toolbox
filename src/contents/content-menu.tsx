@@ -4,7 +4,6 @@ import {
     BookOutlined,
     HighlightOutlined,
     FireOutlined,
-    BgColorsOutlined,
     PlusCircleOutlined,
 } from '@ant-design/icons';
 import { message } from 'antd';
@@ -15,7 +14,6 @@ import './content-menu.css';
 export const config: PlasmoCSConfig = {
     matches: ["*://weread.qq.com/web/reader/*"],
     run_at: "document_idle",
-    css: ["./content-menu.css"],
     all_frames: true
 };
 
@@ -127,7 +125,7 @@ const Menu: React.FC = () => {
     function initImageLoader() {
         console.log('initImageLoader');
         const observer = new MutationObserver((mutationsList: MutationRecord[]) => {
-            console.log("mutationsList======")
+            console.log("mutationsList")
             for (let mutation of mutationsList) {
                 if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
                     mutation.addedNodes.forEach((node: Node) => {
