@@ -12,7 +12,7 @@
 
 1. 首先，点击上方图标，下载你需要的浏览器插件压缩包。下载好后解压到某个文件夹（比如 `weread-toobox`）。
 ![image-20230603145959878](https://img2023.cnblogs.com/blog/2740513/202306/2740513-20230603150001391-1222145165.png)
-[百度云下载地址(可能不是最新版)]()
+[百度云下载地址(可能不是最新版)](https://pan.baidu.com/s/1TKgvpArGmRSvDkS-pTVV5g?pwd=8ssd)
 
 1.  接下来，进入 Chrome 在地址栏输入 `chrome://extensions/` 后回车，进入扩展管理页面。
 
