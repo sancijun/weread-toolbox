@@ -98,4 +98,12 @@ function getBookTile(): string {
     return title;
 }
 
-export { copy, setScreen, resetScreen, getText, sleep, simulateClick, getBookTile, lightenColor };
+function getStorageValues(keys) {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.get(keys, function (result) {
+            resolve(result);
+        });
+    });
+}
+
+export { copy, setScreen, resetScreen, getText, sleep, simulateClick, getBookTile, lightenColor, getStorageValues };

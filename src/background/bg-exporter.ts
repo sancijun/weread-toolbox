@@ -1,21 +1,22 @@
-import { featchBestBookmarks, featchBookmarks, featchChapInfos } from "~background/bg-weread-api";
+import { fetchBestBookmarks, fetchBookmarks, fetchChapInfos } from "~background/bg-weread-api";
+import { getLocalStorageData } from "./bg-utils";
 
 /**
- * 导出标注
+ * 导出 Markdown 标注
  * @param chapterImgData 
  * @param curChapterTitle 
  */
-export async function exportBookMarks(bookTile: string, isHot: boolean, curChapterTitle?: string) {
+export async function exportBookMarks(bookTitle: string, isHot: boolean, curChapterTitle?: string) {
     try {
         // 获取书籍 id 和 图片数据
-        const bookId = await getLocalStorageData(`${bookTile}-bookId`) as string;
-        const imgData = await getLocalStorageData(`${bookTile}-ImgData`) as {};
+        const bookId = await getLocalStorageData(`${bookTitle}-bookId`) as string;
+        const imgData = await getLocalStorageData(`${bookTitle}-ImgData`) as {};
         console.log('bookId', bookId, 'imgData', imgData);
 
         // 获取标注并根据 chapterUid 分组
         const marks = isHot
-            ? (await featchBestBookmarks(bookId))?.items || []
-            : (await featchBookmarks(bookId))?.updated || [];
+            ? (await fetchBestBookmarks(bookId))?.items || []
+            : (await fetchBookmarks(bookId))?.updated || [];
 
         console.log('marks', marks);
         const groupedMarks = marks.reduce((groupedMarks: Record<number, any[]>, mark: any) => {
@@ -26,7 +27,7 @@ export async function exportBookMarks(bookTile: string, isHot: boolean, curChapt
         }, {});
 
         // 获取目录
-        const chapInfos = await featchChapInfos(bookId);
+        const chapInfos = await fetchChapInfos(bookId);
         const chapters = chapInfos.data[0].updated;
         console.log('chapters', chapters);
         // 处理标注和目录，生成 markdown 文本
@@ -84,8 +85,8 @@ function traverseMarks(marks: any[], chapterImgData: { [key: string]: string }) 
             let imgData = findImagesInRange(chapterImgData, mark.range);
             let index = 0;
             res += mark.markText.replace(/\[插图\]/g, (match: string) => {
-                return `![插图](${imgData[index++]})\n` || match;
-            });
+                return `![插图](${imgData[index++]})` || match;
+            }) + "\n\n";
         } else { // 标注
             prevMarkText = mark.markText;
             tempRes = regexpReplace(prevMarkText);
@@ -97,7 +98,7 @@ function traverseMarks(marks: any[], chapterImgData: { [key: string]: string }) 
     return res;
 }
 
-
+// 根据 range 查找图片
 function findImagesInRange(imageDict: { [offset: string]: string }, range: string): string[] {
     let [min, max] = range.split("-").map(Number);
     if (max === undefined || max - min <= 1) {
@@ -169,14 +170,6 @@ function regexpReplace(markText: string) {
         }
     }
     return markText
-}
-
-async function getLocalStorageData(key) {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(key, (result) => {
-        resolve(result[key]);
-      });
-    });
 }
 
 // ======== 以下为配置项 ========

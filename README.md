@@ -11,7 +11,8 @@
 [![Opera](https://img.shields.io/badge/-Opera-red?logo=Opera)](./build/opera-mv3-prod.zip)
 
 1. 首先，点击上方图标，下载你需要的浏览器插件压缩包。下载好后解压到某个文件夹（比如 `weread-toobox`）。
-![下载](https://img2023.cnblogs.com/blog/2740513/202305/2740513-20230530133915562-109362484.png)
+![image-20230603145959878](https://img2023.cnblogs.com/blog/2740513/202306/2740513-20230603150001391-1222145165.png)
+[百度云下载地址(可能不是最新版)]()
 
 1.  接下来，进入 Chrome 在地址栏输入 `chrome://extensions/` 后回车，进入扩展管理页面。
 
@@ -22,7 +23,42 @@
 
 ## 功能
 
-1. 导出全书标注：支持导出图文；
-2. 导出热门标注：可用户快速了解全书精华内容；
-3. 调整读书页屏幕宽度；
-4. 解除右键限制；
+1. 导出全书标注：支持图文导出全书 Markdown 笔记；
+2. 导出热门标注：图文导出本书热门笔记，快速了解全书精华内容；
+3. 同步 Notion：支持图文笔记导出到 Notion；
+4. 调整读书页屏幕宽度；
+5. 解除右键限制；
+
+## 导出 Notion
+
+
+1. 获取 Notion Token：
+浏览器打开 https://www.notion.so/my-integrations
+点击New integration 输入name提交
+点击show，然后 copy
+
+2. 复制 [Notion 模板](https://sancijun.notion.site/sancijun/1024c90b7f6c4590a907a8923d1f9e47)，并点击右上角设置，Connections添加你创建的Integration。
+
+3. 获取Notion Database ID：
+  打开 Notion 数据库，点击右上角的 Share，然后点击 Copy link
+  获取链接，比如 https://sancijun.notion.site/sancijun/1024c90b7f6c4590a907a8923d1f9e47 中间的 `1024c90b7f6c4590a907a8923d1f9e47` 就是 Database ID
+
+4. 微信读书工具箱设置，然后点击同步到 Notion 按钮即可。
+![image-20230603144930462](https://img2023.cnblogs.com/blog/2740513/202306/2740513-20230603144931569-2690162.png)
+
+
+
+
+## FQA
+
+1. 如果导出图片失败，可能由于网络问题，有的图片没有加载到，建议重试。
+2. 如果插件安装后没有微信读书工具箱的按钮，可以先禁用其他同类插件。
+
+
+
+## 致谢
+
+| Item                                                         | Reason                                                       |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| [wereader](https://github.com/Higurashi-kagome/wereader)     | 本项目导出全部标注参考了 [wereader](https://github.com/Higurashi-kagome/wereader) 。 |
+| [weread_to_notion](https://github.com/malinkang/weread_to_notion) | 本项目导出到 Notion 功能参考了 [weread_to_notion](https://github.com/malinkang/weread_to_notion) 项目。 |

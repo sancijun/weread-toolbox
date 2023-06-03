@@ -4,11 +4,12 @@ import {
     BookOutlined,
     HighlightOutlined,
     FireOutlined,
+    CloudSyncOutlined,
     PlusCircleOutlined,
 } from '@ant-design/icons';
 import { message } from 'antd';
 import type { PlasmoCSConfig } from 'plasmo';
-import { copy, getBookTile, setScreen, simulateClick, sleep } from './content-utils';
+import { copy, getBookTile, getStorageValues, setScreen, simulateClick, sleep } from './content-utils';
 import './content-menu.css';
 
 export const config: PlasmoCSConfig = {
@@ -64,7 +65,6 @@ const Menu: React.FC = () => {
     }, []);
 
     const openChange = (open) => {
-        console.log('openChange', open);
         const parentElement = document.querySelector('.readerControls');
         let childElements = Array.from(parentElement.children);
         childElements = childElements.slice(0, childElements.length - 2);
@@ -76,6 +76,7 @@ const Menu: React.FC = () => {
         }
     };
 
+    // 调整屏幕宽度
     const onClickSetScreen = () => {
         chrome.storage.local.get('screenCoefficient', function (result) {
             let screen = result.screenCoefficient || 1.0
@@ -87,45 +88,110 @@ const Menu: React.FC = () => {
         })
     };
 
-    const onClickExportBookMarks = (isHot: boolean) => {
-        // 跳转到第一章
-        const catalogItem = document.querySelector('.readerControls_item.catalog') as HTMLElement;
-        simulateClick(catalogItem);
-        const readerCatalog = document.querySelector('.readerCatalog');
-        if (readerCatalog) {
-            readerCatalog.removeAttribute('style');
-            simulateClick(document.querySelector('.chapterItem_link'));
-            readerCatalog.setAttribute('style', 'display: none;');
-        }
-        simulateClick(catalogItem);
-        message.open({ key: 'export', type: 'loading', content: '数据加载中...', duration: 0 });
-
-        // 点击下一章直到最后
-        setTimeout(() => clickReaderFooterButton(isHot), 1000);
-    }
-
-    function clickReaderFooterButton(isHot: boolean) {
-        const nextPageButton = document.querySelector('.readerFooter_button');
-        if (nextPageButton) {
-            var evt = new MouseEvent("click", { bubbles: true, cancelable: true, clientX: 100, clientY: 100 });
-            nextPageButton.dispatchEvent(evt);
-            setTimeout(() => clickReaderFooterButton(isHot), 1000);
-        } else {
+    // 导出全部标注
+    async function onClickExportBookMarks() {
+        try {
+            await loadImage();
             // 通知 background.js 执行 getAllMarks
             const title = getBookTile();
-            chrome.runtime.sendMessage({ type: "exportBookMarks", title: title, isHot: isHot }, function (resp) {
+            chrome.runtime.sendMessage({ type: "exportBookMarks", title: title }, function (resp) {
                 console.log('exportBookMarks', resp);
                 copy(resp.content).then(() => {
                     message.open({ key: 'export', type: 'success', content: '已成功导出到剪贴板!', duration: 2 });
                 });
             });
+        } catch (error) {
+            console.error('Error occurred during export:', error);
+            message.open({ key: 'export', type: 'error', content: '导出全部标注失败!', duration: 2 });
         }
     }
 
+    // 导出热门标注
+    async function onClickExportHotBookMarks() {
+        try {
+            await loadImage();
+            // 通知 background.js 执行 getAllMarks
+            const title = getBookTile();
+            chrome.runtime.sendMessage({ type: "exportHotBookMarks", title: title, isHot: true }, function (resp) {
+                console.log('exportHotBookMarks', resp);
+                copy(resp.content).then(() => {
+                    message.open({ key: 'export', type: 'success', content: '已成功导出到剪贴板!', duration: 2 });
+                });
+            });
+        } catch (error) {
+            console.error('Error occurred during export:', error);
+            message.open({ key: 'export', type: 'error', content: '导出热门标注失败!', duration: 2 });
+        }
+    }
+
+    // 导出到 Notion
+    async function onClickExportToNotion() {
+        try {
+            // 检查 databaseId 和 notionToken 是否为空
+            const { databaseId, notionToken } = await getStorageValues(['databaseId', 'notionToken']);
+            if (!databaseId || !notionToken) {
+                message.error('请先转到插件 Popup 页面设置 Notion databaseId, notionToken');
+                return;
+            }
+
+            await loadImage();
+            const title = getBookTile();
+            chrome.runtime.sendMessage({ type: "exportToNotion", title: title }, function (resp) {
+                console.log('exportToNotion', resp);
+                message.open({ key: 'export', type: 'success', content: '已成功导出到 Notion!', duration: 2 });
+            });
+        } catch (error) {
+            console.error('Error occurred during export:', error);
+            message.open({ key: 'export', type: 'error', content: '导出到 Notion 失败!', duration: 2 });
+        }
+    }
+
+    // 加载图片
+    function loadImage() {
+        return new Promise(async (resolve, reject) => {
+            // 获取 isExportImage 的值
+            const { isExportImage } = await getStorageValues('isExportImage');
+            console.log('isExportImage is ', isExportImage);
+            if (isExportImage == false) {
+                // 不执行后续逻辑
+                console.log('isExportImage is ', isExportImage);
+                resolve(undefined);
+                return;
+            }
+
+            const catalogItem = document.querySelector('.readerControls_item.catalog') as HTMLElement;
+            simulateClick(catalogItem);
+            const readerCatalog = document.querySelector('.readerCatalog');
+            if (readerCatalog) {
+                readerCatalog.removeAttribute('style');
+                simulateClick(document.querySelector('.chapterItem_link'));
+                readerCatalog.setAttribute('style', 'display: none;');
+            }
+            simulateClick(catalogItem);
+            message.open({ key: 'export', type: 'loading', content: '数据加载中...', duration: 0 });
+            await sleep(1000); // 等待数据加载完成
+            // 点击下一章直到最后
+            clickReaderFooterButton(resolve);
+        });
+    }
+
+    // 点击下一章直到最后
+    function clickReaderFooterButton(resolve) {
+        const nextPageButton = document.querySelector('.readerFooter_button');
+        console.log('nextPageButton', nextPageButton);
+        if (nextPageButton) {
+            var evt = new MouseEvent("click", { bubbles: true, cancelable: true, clientX: 100, clientY: 100 });
+            nextPageButton.dispatchEvent(evt);
+            setTimeout(() => clickReaderFooterButton(resolve), 1000);
+        } else {
+            resolve(); // 图片加载完成，解析Promise
+        }
+    }
+
+    // 初始化图片加载器
     function initImageLoader() {
         console.log('initImageLoader');
         const observer = new MutationObserver((mutationsList: MutationRecord[]) => {
-            console.log("mutationsList")
             for (let mutation of mutationsList) {
                 if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
                     mutation.addedNodes.forEach((node: Node) => {
@@ -164,6 +230,7 @@ const Menu: React.FC = () => {
 
     }
 
+    // 初始化消息监听
     function initMessageListener() {
         console.log('initMessageListener');
         // 监听 service worker 消息
@@ -184,7 +251,7 @@ const Menu: React.FC = () => {
             if (event.source === window && event.data && event.data.action === 'sendBookId') {
                 const bookId = event.data.bookId;
                 const title = event.data.title;
-                if (chrome && chrome.runtime && chrome.runtime.sendMessage) {
+                if (chrome && chrome.storage && chrome.storage.local) {
                     const data = { [`${title}-bookId`]: bookId };
                     chrome.storage.local.set(data);
                 }
@@ -194,10 +261,10 @@ const Menu: React.FC = () => {
 
     return (
         <FloatButton.Group onOpenChange={openChange} trigger="click" type="default" icon={<BookOutlined />} >
-            <FloatButton onClick={() => onClickExportBookMarks(false)} icon={<HighlightOutlined />} tooltip={<div>导出全书标注</div>} className="readerControls_item" />
-            <FloatButton onClick={() => onClickExportBookMarks(true)} icon={<FireOutlined />} tooltip={<div>导出热门标注</div>} className="readerControls_item" />
+            <FloatButton onClick={() => onClickExportBookMarks()} icon={<HighlightOutlined />} tooltip={<div>导出全书标注</div>} className="readerControls_item" />
+            <FloatButton onClick={() => onClickExportHotBookMarks()} icon={<FireOutlined />} tooltip={<div>导出热门标注</div>} className="readerControls_item" />
+            <FloatButton onClick={() => onClickExportToNotion()} icon={<CloudSyncOutlined />} tooltip={<div>同步到 Notion</div>} className="readerControls_item" />
             <FloatButton onClick={() => onClickSetScreen()} icon={<PlusCircleOutlined />} tooltip={<div>调整屏幕宽度</div>} className="readerControls_item" />
-            {/* <FloatButton onClick={() => console.log('click 设置主题')} icon={<BgColorsOutlined />} tooltip={<div>设置主题</div>} className="readerControls_item" /> */}
         </FloatButton.Group>
     )
 }

@@ -1,3 +1,4 @@
+import { exportToNotion } from "~background/bg-export-notion";
 import { exportBookMarks } from "~background/bg-exporter";
 
 // 监听消息
@@ -7,12 +8,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (sender && sender.tab) tabId = sender.tab.id;
     switch (msg.type) {
         case "exportBookMarks":
-            exportBookMarks(msg.title, msg.isHot).then((content) => {
+            exportBookMarks(msg.title, false).then((content) => {
                 sendResponse({ content: content });
             });
             return true;
-        case "getCurChapMarks":
-            exportBookMarks(msg.title, msg.curChapterTitle).then((content) => {
+        case "exportHotBookMarks":
+            exportBookMarks(msg.title, true).then((content) => {
+                sendResponse({ content: content });
+            });
+            return true;
+        case "exportToNotion":
+            exportToNotion(msg.title, false).then((content) => {
                 sendResponse({ content: content });
             });
             return true;
