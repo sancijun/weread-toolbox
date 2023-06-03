@@ -1,5 +1,5 @@
 import { fetchBestBookmarks, fetchBookmarks, fetchChapInfos } from "~background/bg-weread-api";
-import { getLocalStorageData } from "./bg-utils";
+import { getLocalStorageData, sendMessage } from "./bg-utils";
 
 /**
  * 导出 Markdown 标注
@@ -12,13 +12,15 @@ export async function exportBookMarks(bookTitle: string, isHot: boolean, curChap
         const bookId = await getLocalStorageData(`${bookTitle}-bookId`) as string;
         const imgData = await getLocalStorageData(`${bookTitle}-ImgData`) as {};
         console.log('bookId', bookId, 'imgData', imgData);
-
+        if (!bookId) {
+            sendMessage({ message: { alert: '导出失败：信息缺失，请点击下一章，加载更多信息后重试！' } });
+            return false;
+        }
         // 获取标注并根据 chapterUid 分组
         const marks = isHot
             ? (await fetchBestBookmarks(bookId))?.items || []
             : (await fetchBookmarks(bookId))?.updated || [];
 
-        console.log('marks', marks);
         const groupedMarks = marks.reduce((groupedMarks: Record<number, any[]>, mark: any) => {
             const { chapterUid } = mark;
             groupedMarks[chapterUid] = groupedMarks[chapterUid] || [];
@@ -29,19 +31,16 @@ export async function exportBookMarks(bookTitle: string, isHot: boolean, curChap
         // 获取目录
         const chapInfos = await fetchChapInfos(bookId);
         const chapters = chapInfos.data[0].updated;
-        console.log('chapters', chapters);
         // 处理标注和目录，生成 markdown 文本
         let res = "";
         for (const chapter of chapters) {
             const { title, level, anchors, chapterUid } = chapter;
             // 如果指定了章节标题，只处理该章节
             if (curChapterTitle && title !== curChapterTitle) continue;
-            if (Config.allTitles || marks.length) {
-                res += `${getTitleAddedPreAndSuf(title, level)}\n\n`;
-                if (anchors && anchors[0]?.title !== title) {
-                    for (const anchor of anchors) {
-                        res += `${getTitleAddedPreAndSuf(anchor.title, anchor.level)}\n\n`;
-                    }
+            res += `${getTitleAddedPreAndSuf(title, level)}\n\n`;
+            if (anchors && anchors[0]?.title !== title) {
+                for (const anchor of anchors) {
+                    res += `${getTitleAddedPreAndSuf(anchor.title, anchor.level)}\n\n`;
                 }
             }
             res += traverseMarks(groupedMarks[chapterUid] || [], imgData);
@@ -50,7 +49,9 @@ export async function exportBookMarks(bookTitle: string, isHot: boolean, curChap
         // 发送生成的 markdown 文本给前端
         return res;
     } catch (error) {
+        sendMessage({ message: { alert: '导出失败，可联系三此君，反馈异常详情！' } });
         console.error("exportBookMarks error:", error);
+        return false;
     }
 }
 

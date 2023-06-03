@@ -21,10 +21,14 @@ async function sendMessage(sendMsg: { tabId?: number; message: any; }) {
 
 async function getLocalStorageData(key) {
     return new Promise((resolve) => {
-      chrome.storage.local.get(key, (result) => {
-        resolve(result[key]);
-      });
+        chrome.storage.local.get(key, (result) => {
+            resolve(result[key]);
+        });
     });
 }
 
-export { sendMessage, getLocalStorageData}
+function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export { sendMessage, getLocalStorageData, sleep }

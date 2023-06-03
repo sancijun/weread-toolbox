@@ -1,6 +1,6 @@
 import { fetchBestBookmarks, fetchBookInfo, fetchBookmarks, fetchChapInfos, fetchReadInfo } from "~background/bg-weread-api";
 import { Client } from '@notionhq/client';
-import { getLocalStorageData } from "./bg-utils";
+import { getLocalStorageData, sendMessage, sleep } from "./bg-utils";
 
 
 /**
@@ -10,15 +10,27 @@ import { getLocalStorageData } from "./bg-utils";
  * @param curChapterTitle 
  */
 export async function exportToNotion(bookTitle: string, isHot: boolean, curChapterTitle?: string) {
-    const databaseId = await getLocalStorageData('databaseId') as string;
-    const notionToken = await getLocalStorageData('notionToken') as string;
-    console.log('databaseId', databaseId, 'notionToken', notionToken);
-    const client = new Client({ auth: notionToken, });
-    const bookId = await getLocalStorageData(`${bookTitle}-bookId`) as string;
-    await check(client, databaseId, bookId);
-    const children = await getNotionChildrens(bookTitle, isHot, curChapterTitle);
-    const id = await insertToNotion(client, databaseId, bookId);
-    await addChildren(client, id, children);
+    try {
+        const databaseId = await getLocalStorageData('databaseId') as string;
+        const notionToken = await getLocalStorageData('notionToken') as string;
+        const bookId = await getLocalStorageData(`${bookTitle}-bookId`) as string;
+        console.log('databaseId', databaseId, 'notionToken', notionToken, 'bookId', bookId);
+        if (!bookId) {
+            sendMessage({ message: { alert: '导出失败：信息缺失，请点击下一章，加载更多信息后重试！' } });
+            return false;
+        }
+        const client = new Client({ auth: notionToken, });
+        await check(client, databaseId, bookId);
+        const id = await insertToNotion(client, databaseId, bookId);
+        console.log('insert to notion id=', id);
+        const children = await getNotionChildrens(bookTitle, isHot, curChapterTitle);
+        await addChildren(client, id, children);
+        return true;
+    } catch (error) {
+        sendMessage({ message: { alert: '导出失败，请检查 Notion 设置是否正确。可联系三此君，反馈异常详情！' } });
+        console.error("exportToNotion error:", error);
+        return false;
+    }
 }
 
 // 检查 Notion 中是否存在，如果存在则删除
@@ -48,7 +60,6 @@ async function insertToNotion(client: Client, databaseId: string, bookId: string
     await sleep(300);
     // 获取书籍信息
     const bookInfo = await fetchBookInfo(bookId);
-    console.log('bookInfo', bookInfo);
     const parent = {
         database_id: databaseId,
     };
@@ -209,7 +220,6 @@ async function getNotionChildrens(bookTitle: string, isHot: boolean, curChapterT
             ? (await fetchBestBookmarks(bookId))?.items || []
             : (await fetchBookmarks(bookId))?.updated || [];
 
-        console.log('marks', marks);
         const groupedMarks = marks.reduce((groupedMarks: Record<number, any[]>, mark: any) => {
             const { chapterUid } = mark;
             groupedMarks[chapterUid] = groupedMarks[chapterUid] || [];
@@ -220,19 +230,16 @@ async function getNotionChildrens(bookTitle: string, isHot: boolean, curChapterT
         // Get chapters
         const chapInfos = await fetchChapInfos(bookId);
         const chapters = chapInfos.data[0].updated;
-        console.log('chapters', chapters);
 
         // Process bookmarks and chapters to generate markdown text
         for (const chapter of chapters) {
             const { title, level, anchors, chapterUid } = chapter;
             // If curChapterTitle is specified, process only that chapter
             if (curChapterTitle && title !== curChapterTitle) continue;
-            if (marks.length) {
-                childrens.push(getHeading(level, title));
-                if (anchors && anchors[0]?.title !== title) {
-                    for (const anchor of anchors) {
-                        childrens.push(getHeading(anchor.level, anchor.title));
-                    }
+            childrens.push(getHeading(level, title));
+            if (anchors && anchors[0]?.title !== title) {
+                for (const anchor of anchors) {
+                    childrens.push(getHeading(anchor.level, anchor.title));
                 }
             }
             if (!groupedMarks[chapterUid]) continue; // If no marks in this chapter, skip
@@ -324,6 +331,7 @@ function getImage(url: string) {
 
 // 查找 range 内的图片
 function findImagesInRange(imageDict: { [offset: string]: string }, range: string): string[] {
+    if (imageDict === undefined) return [];
     let [min, max] = range.split("-").map(Number);
     if (max === undefined || max - min <= 1) {
         return [imageDict[min]];

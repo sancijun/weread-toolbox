@@ -93,7 +93,7 @@ function SettingsPageContent() {
 
   const handleFormChange = (changedValues, allValues) => {
     chrome.storage.local.set(allValues, () => {
-      console.log("Data saved successfully.", allValues);
+      console.log("Setting Data saved successfully.", allValues);
     });
   };
 

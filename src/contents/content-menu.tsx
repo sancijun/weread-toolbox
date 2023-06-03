@@ -9,7 +9,7 @@ import {
 } from '@ant-design/icons';
 import { message } from 'antd';
 import type { PlasmoCSConfig } from 'plasmo';
-import { copy, getBookTile, getStorageValues, setScreen, simulateClick, sleep } from './content-utils';
+import { copy, getBookTile, getLocalStorageData, setScreen, simulateClick, sleep } from './content-utils';
 import './content-menu.css';
 
 export const config: PlasmoCSConfig = {
@@ -78,12 +78,15 @@ const Menu: React.FC = () => {
 
     // 调整屏幕宽度
     const onClickSetScreen = () => {
-        chrome.storage.local.get('screenCoefficient', function (result) {
+        chrome.storage.local.get('screenCoefficient', async function (result) {
             let screen = result.screenCoefficient || 1.0
             screen = Number.parseFloat(screen) + 0.1;
-            screen = screen > 1.6 ? 1.0 : screen;
-            console.log("screenCoefficient", screen)
-            setScreen(initWidth.current * screen)
+            const screenWidth = initWidth.current * screen;
+            if (screen > 1.6 || screenWidth > (window.outerWidth - 150)) {
+                screen = 1.0
+            }
+            console.log("setScreen", screen, screenWidth, window.outerWidth - 150);
+            setScreen(screenWidth)
             chrome.storage.local.set({ 'screenCoefficient': screen })
         })
     };
@@ -91,14 +94,20 @@ const Menu: React.FC = () => {
     // 导出全部标注
     async function onClickExportBookMarks() {
         try {
+            message.open({ key: 'export', type: 'loading', content: '数据加载中，如果本书已加载过图片，可在设置页关闭图片加载...', duration: 0 });
             await loadImage();
             // 通知 background.js 执行 getAllMarks
             const title = getBookTile();
             chrome.runtime.sendMessage({ type: "exportBookMarks", title: title }, function (resp) {
                 console.log('exportBookMarks', resp);
-                copy(resp.content).then(() => {
-                    message.open({ key: 'export', type: 'success', content: '已成功导出到剪贴板!', duration: 2 });
-                });
+                if (!resp.content || resp.content == false) {
+                    message.open({ key: 'export', type: 'error', content: '导出全部标注失败!', duration: 5 });
+                } else {
+                    copy(resp.content).then(() => {
+                        message.open({ key: 'export', type: 'success', content: '已成功导出到剪贴板!', duration: 2 });
+                    });
+                }
+
             });
         } catch (error) {
             console.error('Error occurred during export:', error);
@@ -109,18 +118,24 @@ const Menu: React.FC = () => {
     // 导出热门标注
     async function onClickExportHotBookMarks() {
         try {
+            message.open({ key: 'export', type: 'loading', content: '数据加载中，如果本书已加载过图片，可在设置页关闭图片加载...', duration: 0 });
             await loadImage();
             // 通知 background.js 执行 getAllMarks
             const title = getBookTile();
             chrome.runtime.sendMessage({ type: "exportHotBookMarks", title: title, isHot: true }, function (resp) {
                 console.log('exportHotBookMarks', resp);
-                copy(resp.content).then(() => {
-                    message.open({ key: 'export', type: 'success', content: '已成功导出到剪贴板!', duration: 2 });
-                });
+                if (!resp.content || resp.content == false) {
+                    message.open({ key: 'export', type: 'error', content: '导出热门标注失败!', duration: 5 });
+                } else {
+                    copy(resp.content).then(() => {
+                        message.open({ key: 'export', type: 'success', content: '已成功导出到剪贴板!', duration: 2 });
+                    });
+                }
+
             });
         } catch (error) {
             console.error('Error occurred during export:', error);
-            message.open({ key: 'export', type: 'error', content: '导出热门标注失败!', duration: 2 });
+            message.open({ key: 'export', type: 'error', content: '导出热门标注失败!', duration: 5 });
         }
     }
 
@@ -128,17 +143,23 @@ const Menu: React.FC = () => {
     async function onClickExportToNotion() {
         try {
             // 检查 databaseId 和 notionToken 是否为空
-            const { databaseId, notionToken } = await getStorageValues(['databaseId', 'notionToken']);
+            const databaseId = await getLocalStorageData('databaseId') as string;
+            const notionToken = await getLocalStorageData('notionToken') as string;
             if (!databaseId || !notionToken) {
-                message.error('请先转到插件 Popup 页面设置 Notion databaseId, notionToken');
+                message.error('请先查看使用说明，设置 Notion Database ID, Notion Token！', 10);
                 return;
             }
-
+            message.open({ key: 'export', type: 'loading', content: '数据加载中，如果本书已加载过图片，可在设置页关闭图片加载...', duration: 0 });
             await loadImage();
             const title = getBookTile();
             chrome.runtime.sendMessage({ type: "exportToNotion", title: title }, function (resp) {
                 console.log('exportToNotion', resp);
-                message.open({ key: 'export', type: 'success', content: '已成功导出到 Notion!', duration: 2 });
+                if (!resp.content || resp.content == false) {
+                    message.open({ key: 'export', type: 'error', content: '导出到 Notion 失败!', duration: 5 });
+                } else {
+                    message.open({ key: 'export', type: 'success', content: '已成功导出到 Notion!', duration: 2 });
+                }
+
             });
         } catch (error) {
             console.error('Error occurred during export:', error);
@@ -150,11 +171,10 @@ const Menu: React.FC = () => {
     function loadImage() {
         return new Promise(async (resolve, reject) => {
             // 获取 isExportImage 的值
-            const { isExportImage } = await getStorageValues('isExportImage');
+            const isExportImage = await getLocalStorageData('isExportImage') as boolean;
             console.log('isExportImage is ', isExportImage);
             if (isExportImage == false) {
                 // 不执行后续逻辑
-                console.log('isExportImage is ', isExportImage);
                 resolve(undefined);
                 return;
             }
@@ -168,7 +188,6 @@ const Menu: React.FC = () => {
                 readerCatalog.setAttribute('style', 'display: none;');
             }
             simulateClick(catalogItem);
-            message.open({ key: 'export', type: 'loading', content: '数据加载中...', duration: 0 });
             await sleep(1000); // 等待数据加载完成
             // 点击下一章直到最后
             clickReaderFooterButton(resolve);
@@ -236,8 +255,7 @@ const Menu: React.FC = () => {
         // 监听 service worker 消息
         chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
             if (msg.alert) {
-                // showToast(msg.alert);
-                // 通知后台正常显示了通知
+                message.error(msg.alert, 10);
                 sendResponse({ succ: 1 });
             } else if (msg.content) {
                 copy(msg.content);

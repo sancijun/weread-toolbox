@@ -64,23 +64,23 @@ function lightenColor(color, amount) {
     // 移除 # 符号并解析颜色值
     color = color.replace("#", "");
     const hexColor = parseInt(color, 16);
-  
+
     // 分离红、绿、蓝通道
     const red = (hexColor >> 16) & 255;
     const green = (hexColor >> 8) & 255;
     const blue = hexColor & 255;
-  
+
     // 调整亮度
     const newRed = Math.round(red + (255 - red) * amount);
     const newGreen = Math.round(green + (255 - green) * amount);
     const newBlue = Math.round(blue + (255 - blue) * amount);
-  
+
     // 将新的 RGB 值转换回十六进制表示
     const newColor = "#" + ((1 << 24) + (newRed << 16) + (newGreen << 8) + newBlue).toString(16).slice(1);
-  
+
     return newColor;
 }
-  
+
 
 /* 模拟点击 */
 function simulateClick(element: HTMLElement, init = {}): void {
@@ -98,12 +98,12 @@ function getBookTile(): string {
     return title;
 }
 
-function getStorageValues(keys) {
-    return new Promise((resolve, reject) => {
-        chrome.storage.local.get(keys, function (result) {
-            resolve(result);
+async function getLocalStorageData(key) {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(key, (result) => {
+            resolve(result[key]);
         });
     });
 }
 
-export { copy, setScreen, resetScreen, getText, sleep, simulateClick, getBookTile, lightenColor, getStorageValues };
+export { copy, setScreen, resetScreen, getText, sleep, simulateClick, getBookTile, lightenColor, getLocalStorageData };
