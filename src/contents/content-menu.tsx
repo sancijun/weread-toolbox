@@ -94,7 +94,7 @@ const Menu: React.FC = () => {
     // 导出全部标注
     async function onClickExportBookMarks() {
         try {
-            message.open({ key: 'export', type: 'loading', content: '数据加载中，如果本书已加载过图片，可在设置页关闭图片加载...', duration: 0 });
+            message.open({ key: 'export', type: 'loading', content: '导出中，请稍等...', duration: 0 });
             await loadImage();
             // 通知 background.js 执行 getAllMarks
             const title = getBookTile();
@@ -118,7 +118,7 @@ const Menu: React.FC = () => {
     // 导出热门标注
     async function onClickExportHotBookMarks() {
         try {
-            message.open({ key: 'export', type: 'loading', content: '数据加载中，如果本书已加载过图片，可在设置页关闭图片加载...', duration: 0 });
+            message.open({ key: 'export', type: 'loading', content: '导出中，请稍等...', duration: 0 });
             await loadImage();
             // 通知 background.js 执行 getAllMarks
             const title = getBookTile();
@@ -149,7 +149,7 @@ const Menu: React.FC = () => {
                 message.error('请先查看使用说明，设置 Notion Database ID, Notion Token！', 10);
                 return;
             }
-            message.open({ key: 'export', type: 'loading', content: '数据加载中，如果本书已加载过图片，可在设置页关闭图片加载...', duration: 0 });
+            message.open({ key: 'export', type: 'loading', content: '导出中，请稍等...', duration: 0 });
             await loadImage();
             const title = getBookTile();
             chrome.runtime.sendMessage({ type: "exportToNotion", title: title }, function (resp) {
@@ -178,7 +178,7 @@ const Menu: React.FC = () => {
                 resolve(undefined);
                 return;
             }
-
+            message.open({ key: 'export', type: 'loading', content: '图片加载中，如果本书已加载过图片，可在设置页关闭图片加载...', duration: 0 });
             const catalogItem = document.querySelector('.readerControls_item.catalog') as HTMLElement;
             simulateClick(catalogItem);
             const readerCatalog = document.querySelector('.readerCatalog');

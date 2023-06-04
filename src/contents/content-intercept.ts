@@ -48,3 +48,5 @@ window.XMLHttpRequest = function () {
 
   return xhr;
 };
+
+export { }
