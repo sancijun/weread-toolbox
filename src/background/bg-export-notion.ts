@@ -1,7 +1,7 @@
 import { fetchBestBookmarks, fetchBookInfo, fetchBookmarks, fetchChapInfos, fetchReadInfo } from "~background/bg-weread-api";
 import { Client } from '@notionhq/client';
 import { getLocalStorageData, sendMessage, sleep } from "./bg-utils";
-
+import { MD5 } from 'crypto-js';
 
 /**
  * 导出笔记到 Notion
@@ -16,7 +16,7 @@ export async function exportToNotion(bookTitle: string, isHot: boolean, curChapt
         const bookId = await getLocalStorageData(`${bookTitle}-bookId`) as string;
         console.log('databaseId', databaseId, 'notionToken', notionToken, 'bookId', bookId);
         if (!bookId) {
-            sendMessage({ message: { alert: '导出失败：信息缺失，请点击下一章，加载更多信息后重试！' } });
+            sendMessage({ message: { alert: '信息缺失，请点击上一页(或下一页)，加载更多信息后重试！' } });
             return false;
         }
         const client = new Client({ auth: notionToken, });
@@ -97,7 +97,7 @@ async function insertToNotion(client: Client, databaseId: string, bookId: string
             ],
         },
         链接: {
-            url: `https://weread.qq.com/web/reader/${bookInfo.bookId}`,
+            url: `https://weread.qq.com/web/reader/${calculateBookStrId(bookId)}`,
         },
         作者: {
             rich_text: [
@@ -110,7 +110,7 @@ async function insertToNotion(client: Client, databaseId: string, bookId: string
             ],
         },
         推荐值: {
-            number: bookInfo.ratingCount,
+            number: bookInfo.newRating / 1000,
         },
         BookId: {
             rich_text: [
@@ -271,6 +271,54 @@ async function getNotionChildrens(bookTitle: string, isHot: boolean, curChapterT
     }
 }
 
+function transformId(bookId: string): [string, string[]] {
+    const idLength = bookId.length;
+
+    if (/^\d*$/.test(bookId)) {
+        const ary: string[] = [];
+        for (let i = 0; i < idLength; i += 9) {
+            ary.push(parseInt(bookId.slice(i, i + 9)).toString(16));
+        }
+        return ['3', ary];
+    }
+
+    let result = '';
+    for (let i = 0; i < idLength; i++) {
+        result += bookId.charCodeAt(i).toString(16);
+    }
+    return ['4', [result]];
+}
+
+function calculateBookStrId(bookId: string): string {
+    const md5Digest = MD5(bookId).toString();
+    let result = md5Digest.slice(0, 3);
+
+    const [code, transformedIds] = transformId(bookId);
+    result += code + '2' + md5Digest.slice(-2);
+
+    for (let i = 0; i < transformedIds.length; i++) {
+        let hexLengthStr = transformedIds[i].length.toString(16);
+        if (hexLengthStr.length === 1) {
+            hexLengthStr = '0' + hexLengthStr;
+        }
+
+        result += hexLengthStr + transformedIds[i];
+
+        if (i < transformedIds.length - 1) {
+            result += 'g';
+        }
+    }
+
+    if (result.length < 20) {
+        result += md5Digest.slice(0, 20 - result.length);
+    }
+
+    const finalMd5Digest = MD5(result).toString();
+    result += finalMd5Digest.slice(0, 3);
+
+    return result;
+}
+
 function getHeading(level: number, content: string) {
     let headingType: 'heading_1' | 'heading_2' | 'heading_3' = 'heading_3';
 
@@ -318,6 +366,15 @@ function getParagraph(content: string) {
 }
 
 function getImage(url: string) {
+    if (!url) {
+        return getParagraph('图片获取失败');
+    }
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.tif', '.tiff', '.ico', '.webp', '.psd', '.ai', '.eps', '.raw', '.indd', '.pdf']; // 常见的图片扩展名列表
+    const isImage = imageExtensions.some(ext => url.toLowerCase().endsWith(ext));
+    if (!isImage) {
+         return getParagraph("图片链接格式错误，您可以访问该链接获取图片，并复制粘贴到此处：" + url);
+    }
+
     return {
         type: "image",
         image: {

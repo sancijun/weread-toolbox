@@ -34,7 +34,7 @@ const AboutPageContent = () => {
         <Button onClick={() => openLink("https://github.com/sancijun/weread-toolbox#readme")} style={{ marginRight: '8px', marginLeft: '5px' }}>
           使用说明
         </Button>
-        <Button type="primary" ghost onClick={() => openLink("https://github.com/sancijun/weread-toolbox/issues/new?assignees=&labels=enhancement&projects=&template=----.md&title=%5BFeature%5D+")} style={{ marginRight: '8px' }}>
+        <Button type="primary" ghost onClick={() => openLink("https://github.com/sancijun/weread-toolbox/issues/new?assignees=&labels=enhancement&projects=&template=---feature.md&title=%5BFeature%5D+")} style={{ marginRight: '8px' }}>
           功能建议
         </Button>
         <Button danger onClick={() => openLink("https://github.com/sancijun/weread-toolbox/issues/new?assignees=&labels=&projects=&template=---bug.md&title=%5BBug%5D+")}>
@@ -112,7 +112,7 @@ function SettingsPageContent() {
         valuePropName="checked"
         rules={[{ required: true }]}
       >
-        <Switch />
+        <Switch defaultChecked/>
       </Item>
       <Item
         label={

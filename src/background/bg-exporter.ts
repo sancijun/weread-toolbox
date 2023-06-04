@@ -13,7 +13,7 @@ export async function exportBookMarks(bookTitle: string, isHot: boolean, curChap
         const imgData = await getLocalStorageData(`${bookTitle}-ImgData`) as {};
         console.log('bookId', bookId, 'imgData', imgData);
         if (!bookId) {
-            sendMessage({ message: { alert: '导出失败：信息缺失，请点击下一章，加载更多信息后重试！' } });
+            sendMessage({ message: { alert: '信息缺失，请点击上一页(或下一页)，加载更多信息后重试！' } });
             return false;
         }
         // 获取标注并根据 chapterUid 分组
