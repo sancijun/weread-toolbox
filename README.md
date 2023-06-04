@@ -35,12 +35,13 @@
 点击 show，然后 copy
 
 2. 复制 [Notion 模板](https://sancijun.notion.site/8a17716b20db4ec1a99c2e03d9c633ee)，并点击右上角设置，Connections 添加你创建的 Integration。
+<img src="https://img2023.cnblogs.com/blog/2740513/202306/2740513-20230604120901298-1557718703.png" alt="image-20230604120858733" style="zoom: 33%;" />
 
 3. 获取 Notion Database ID：
   打开 Notion 数据库，点击右上角的 Share，然后点击 Copy link
   获取链接，比如 https://sancijun.notion.site/8a17716b20db4ec1a99c2e03d9c633ee 中间的 `8a17716b20db4ec1a99c2e03d9c633ee` 就是 Database ID
 
-1. 微信读书工具箱设置，然后点击同步到 Notion 按钮即可。
+4. 微信读书工具箱设置，然后点击同步到 Notion 按钮即可。
 <img src="https://img2023.cnblogs.com/blog/2740513/202306/2740513-20230603144931569-2690162.png" alt="image-20230603144930462" style="zoom: 33%;" />
 
 ## FQA
