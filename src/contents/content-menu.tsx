@@ -96,6 +96,7 @@ const Menu: React.FC = () => {
         try {
             message.open({ key: 'export', type: 'loading', content: '导出中，请稍等...', duration: 0 });
             await loadImage();
+            message.open({ key: 'export', type: 'loading', content: '导出中，请稍等...', duration: 0 });
             // 通知 background.js 执行 getAllMarks
             const title = getBookTile();
             chrome.runtime.sendMessage({ type: "exportBookMarks", title: title }, function (resp) {
@@ -120,6 +121,7 @@ const Menu: React.FC = () => {
         try {
             message.open({ key: 'export', type: 'loading', content: '导出中，请稍等...', duration: 0 });
             await loadImage();
+            message.open({ key: 'export', type: 'loading', content: '导出中，请稍等...', duration: 0 });
             // 通知 background.js 执行 getAllMarks
             const title = getBookTile();
             chrome.runtime.sendMessage({ type: "exportHotBookMarks", title: title, isHot: true }, function (resp) {
@@ -151,6 +153,7 @@ const Menu: React.FC = () => {
             }
             message.open({ key: 'export', type: 'loading', content: '导出中，请稍等...', duration: 0 });
             await loadImage();
+            message.open({ key: 'export', type: 'loading', content: '导出中，请稍等...', duration: 0 });
             const title = getBookTile();
             chrome.runtime.sendMessage({ type: "exportToNotion", title: title }, function (resp) {
                 console.log('exportToNotion', resp);
