@@ -35,6 +35,8 @@
 点击 show，然后 copy
 
 2. 复制 [Notion 模板](https://sancijun.notion.site/8a17716b20db4ec1a99c2e03d9c633ee)，并点击右上角设置，Connections 添加你创建的 Integration。
+【**重要**】看下图，点击右上角设置，Connections 添加你创建的 Integration。未添加 Integration 会导致导出失败。
+
 <img src="https://img2023.cnblogs.com/blog/2740513/202306/2740513-20230604120901298-1557718703.png" alt="image-20230604120858733" style="zoom: 33%;" />
 
 3. 获取 Notion Database ID：
