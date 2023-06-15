@@ -91,7 +91,7 @@ async function insertToNotion(client: Client, databaseId: string, bookId: string
                 {
                     type: 'text',
                     text: {
-                        content: bookInfo.category,
+                        content: bookInfo.category??'',
                     },
                 },
             ],
