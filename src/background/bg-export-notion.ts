@@ -1,4 +1,4 @@
-import { fetchBestBookmarks, fetchBookInfo, fetchBookmarks, fetchChapInfos, fetchReadInfo } from "~background/bg-weread-api";
+import { fetchBestBookmarks, fetchBookInfo, fetchBookmarks, fetchChapInfos, fetchReadInfo, fetchReviews } from "~background/bg-weread-api";
 import { Client } from '@notionhq/client';
 import { getLocalStorageData, sendMessage, sleep } from "./bg-utils";
 import { MD5 } from 'crypto-js';
@@ -219,7 +219,8 @@ async function getNotionChildrens(bookTitle: string, isHot: boolean, curChapterT
         const marks = isHot
             ? (await fetchBestBookmarks(bookId))?.items || []
             : (await fetchBookmarks(bookId))?.updated || [];
-
+        const reviews = (await fetchReviews(bookId))?.reviews.map(item => item.review) || [];
+        marks.push(...reviews)
         const groupedMarks = marks.reduce((groupedMarks: Record<number, any[]>, mark: any) => {
             const { chapterUid } = mark;
             groupedMarks[chapterUid] = groupedMarks[chapterUid] || [];
@@ -248,7 +249,8 @@ async function getNotionChildrens(bookTitle: string, isHot: boolean, curChapterT
                 if (mark.abstract && mark.content) { // If it's a thought
                     const thoughtContent = mark.content; // Thought content
                     let thoughtAbstract = mark.abstract; // Content marked by thought
-                    childrens.push(getParagraph(thoughtAbstract + thoughtContent));
+                    childrens.push(getParagraph(thoughtAbstract));
+                    childrens.push(getParagraph("💡 " + thoughtContent))
                 } else if (mark.markText.includes("[插图]")) { // Image
                     let imgs = findImagesInRange(imgData, mark.range);
                     const parts = mark.markText.split("[插图]");

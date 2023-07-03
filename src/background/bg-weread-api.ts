@@ -24,16 +24,9 @@ async function fetchReadInfo(bookId: string) {
     return await getJson(url);
 }
 
-async function getReviewList(bookId: string) {
-    const url = `https://weread.qq.com/wrpage/review/list?bookId=${bookId}&_=${Date.now()}`;
-    const response = await getJson(url)
-    if (response.ok && 'data' in response.json()) {
-        const data = response.json().data;
-        const summary = data.summary || [];
-        const reviews = data.review || [];
-        return [summary, reviews];
-    }
-    return [[], []];
+async function fetchReviews(bookId: string) {
+    const url = `https://i.weread.qq.com/review/list?bookId=${bookId}&listType=11&mine=1&synckey=0&listMode=0`;
+    return await getJson(url)
 }
 
 async function getJson(url: string) {
@@ -51,4 +44,4 @@ async function getJson(url: string) {
     }
 }
 
-export { fetchBookmarks, fetchChapInfos, fetchBestBookmarks, fetchBookInfo, fetchReadInfo };
+export { fetchBookmarks, fetchChapInfos, fetchBestBookmarks, fetchBookInfo, fetchReadInfo, fetchReviews };

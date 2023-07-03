@@ -1,4 +1,4 @@
-import { fetchBestBookmarks, fetchBookmarks, fetchChapInfos } from "~background/bg-weread-api";
+import { fetchBestBookmarks, fetchBookmarks, fetchChapInfos, fetchReviews } from "~background/bg-weread-api";
 import { getLocalStorageData, sendMessage } from "./bg-utils";
 
 /**
@@ -20,7 +20,8 @@ export async function exportBookMarks(bookTitle: string, isHot: boolean, curChap
         const marks = isHot
             ? (await fetchBestBookmarks(bookId))?.items || []
             : (await fetchBookmarks(bookId))?.updated || [];
-
+        const reviews = (await fetchReviews(bookId))?.reviews.map(item => item.review) || [];
+        marks.push(...reviews)
         const groupedMarks = marks.reduce((groupedMarks: Record<number, any[]>, mark: any) => {
             const { chapterUid } = mark;
             groupedMarks[chapterUid] = groupedMarks[chapterUid] || [];
