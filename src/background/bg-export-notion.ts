@@ -243,6 +243,7 @@ async function getNotionChildrens(bookTitle: string, isHot: boolean, curChapterT
                 }
             }
             if (!groupedMarks[chapterUid]) continue; // If no marks in this chapter, skip
+            groupedMarks[chapterUid].sort((a, b) => parseInt(a.range.substr(0,a.range.indexOf('-'))) > parseInt(b.range.substr(0,b.range.indexOf('-'))) ? 1 : -1)
             for (const mark of groupedMarks[chapterUid]) { // Iterate over marks within a chapter
                 if (mark.abstract && mark.content) { // If it's a thought
                     const thoughtContent = mark.content; // Thought content

@@ -61,7 +61,7 @@ function traverseMarks(marks: any[], chapterImgData: { [key: string]: string }) 
     let prevMarkText = ""; // 保存上一条标注文本
     let tempRes = ""; // 保存上一条处理后追加到 res 的标注文本
     let res = "";
-
+    marks.sort((a, b) => parseInt(a.range.substr(0,a.range.indexOf('-'))) > parseInt(b.range.substr(0,b.range.indexOf('-'))) ? 1 : -1)
     for (const mark of marks) { // 遍历章内标注
         if (mark.abstract && mark.content) { // 如果为想法
             const thouContent = `${Config.thouPre}${mark.content}${Config.thouSuf}\n\n`; // 想法
