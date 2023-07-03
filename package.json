@@ -1,7 +1,7 @@
 {
   "name": "weread-toolbox",
   "displayName": "微信读书工具箱",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "微信读书工具箱，支持导出图文 Markdown 笔记，同步 Notion 等。",
   "author": "三此君",
   "packageManager": "npm@9.6.2",
