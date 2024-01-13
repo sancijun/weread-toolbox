@@ -182,15 +182,20 @@ const Menu: React.FC = () => {
                 return;
             }
             message.open({ key: 'export', type: 'loading', content: '图片加载中，如果本书已加载过图片，可在设置页关闭图片加载...', duration: 0 });
-            const catalogItem = document.querySelector('.readerControls_item.catalog') as HTMLElement;
-            simulateClick(catalogItem);
-            const readerCatalog = document.querySelector('.readerCatalog');
-            if (readerCatalog) {
-                readerCatalog.removeAttribute('style');
-                simulateClick(document.querySelector('.chapterItem_link'));
-                readerCatalog.setAttribute('style', 'display: none;');
+            try {
+                const catalogItem = document.querySelector('.readerControls_item.catalog') as HTMLElement;
+                simulateClick(catalogItem);
+                const readerCatalog = document.querySelector('.readerCatalog');
+                if (readerCatalog) {
+                    readerCatalog.removeAttribute('style');
+                    simulateClick(document.querySelector('.readerCatalog_list_item'));
+                    readerCatalog.setAttribute('style', 'display: none;');
+                }
+                simulateClick(catalogItem);
+
+            }catch (error) {
+                console.log('simulateClick catalogItem error: ', error);
             }
-            simulateClick(catalogItem);
             await sleep(1000); // 等待数据加载完成
             // 点击下一章直到最后
             clickReaderFooterButton(resolve);
