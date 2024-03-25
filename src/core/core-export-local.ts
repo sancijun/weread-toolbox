@@ -1,17 +1,17 @@
-import { fetchBestBookmarks, fetchBookmarks, fetchChapInfos, fetchReviews } from "~background/bg-weread-api";
-import { getLocalStorageData, sendMessage } from "./bg-utils";
+import { fetchBestBookmarks, fetchBookInfo, fetchBookmarks, fetchChapInfos, fetchReadInfo, fetchReviews } from "~core/core-weread-api";
+import { calculateBookStrId, formatTimestamp, getLocalStorageData, sendMessage } from "./core-utils";
 
 /**
  * 导出 Markdown 标注
  * @param chapterImgData 
  * @param curChapterTitle 
  */
-export async function exportBookMarks(bookTitle: string, isHot: boolean, curChapterTitle?: string) {
+export async function exportBookMarks(bookTitle: string, isHot: boolean, bookId?: string) {
     try {
         // 获取书籍 id 和 图片数据
-        const bookId = await getLocalStorageData(`${bookTitle}-bookId`) as string;
+        bookId = bookId ? bookId : await getLocalStorageData(`${bookTitle}-bookId`) as string;
         const imgData = await getLocalStorageData(`${bookTitle}-ImgData`) as {};
-        console.log('bookId', bookId, 'imgData', imgData);
+        console.log('bookTitle', bookTitle, 'bookId', bookId, 'imgData', imgData);
         if (!bookId) {
             sendMessage({ message: { alert: '信息缺失，请点击上一页(或下一页)，加载更多信息后重试！' } });
             return false;
@@ -22,6 +22,7 @@ export async function exportBookMarks(bookTitle: string, isHot: boolean, curChap
             : (await fetchBookmarks(bookId))?.updated || [];
         const reviews = (await fetchReviews(bookId))?.reviews.map(item => item.review) || [];
         marks.push(...reviews)
+        if (marks.length == 0) return `《${bookTitle}》 还没有任何笔记。`
         const groupedMarks = marks.reduce((groupedMarks: Record<number, any[]>, mark: any) => {
             const { chapterUid } = mark;
             groupedMarks[chapterUid] = groupedMarks[chapterUid] || [];
@@ -33,11 +34,11 @@ export async function exportBookMarks(bookTitle: string, isHot: boolean, curChap
         const chapInfos = await fetchChapInfos(bookId);
         const chapters = chapInfos.data[0].updated;
         // 处理标注和目录，生成 markdown 文本
-        let res = "";
+        let res = await addMeta(bookId);
         for (const chapter of chapters) {
             const { title, level, anchors, chapterUid } = chapter;
             // 如果指定了章节标题，只处理该章节
-            if (curChapterTitle && title !== curChapterTitle) continue;
+            // if (curChapterTitle && title !== curChapterTitle) continue;
             res += `${getTitleAddedPreAndSuf(title, level)}\n\n`;
             if (anchors && anchors[0]?.title !== title) {
                 for (const anchor of anchors) {
@@ -50,9 +51,9 @@ export async function exportBookMarks(bookTitle: string, isHot: boolean, curChap
         // 发送生成的 markdown 文本给前端
         return res;
     } catch (error) {
-        sendMessage({ message: { alert: '导出失败，可联系三此君，反馈异常详情！' } });
-        console.error("exportBookMarks error:", error);
-        return false;
+        sendMessage({ message: { alert: `《${bookTitle}》导出失败，可联系三此君，反馈异常详情！` } });
+        console.error(bookTitle, bookId, "exportBookMarks error:", error);
+        return `《${bookTitle}》导出失败，可联系三此君，反馈异常详情！ ${error}`;
     }
 }
 
@@ -62,7 +63,7 @@ function traverseMarks(marks: any[], chapterImgData: { [key: string]: string }) 
     let prevMarkText = ""; // 保存上一条标注文本
     let tempRes = ""; // 保存上一条处理后追加到 res 的标注文本
     let res = "";
-    marks.sort((a, b) => parseInt(a.range.substr(0,a.range.indexOf('-'))) > parseInt(b.range.substr(0,b.range.indexOf('-'))) ? 1 : -1)
+    marks.sort((a, b) => parseInt(a.range.substr(0, a.range.indexOf('-'))) > parseInt(b.range.substr(0, b.range.indexOf('-'))) ? 1 : -1)
     for (const mark of marks) { // 遍历章内标注
         if (mark.abstract && mark.content) { // 如果为想法
             const thouContent = `${Config.thouPre}${mark.content}${Config.thouSuf}\n\n`; // 想法
@@ -83,7 +84,7 @@ function traverseMarks(marks: any[], chapterImgData: { [key: string]: string }) 
             } else {
                 res += thouAbstract + thouContent;
             }
-        } else if (mark.markText.includes("[插图]")) { // 插图
+        } else if (mark.markText.includes("[插图]") && chapterImgData) { // 插图
             let imgData = findImagesInRange(chapterImgData, mark.range);
             let index = 0;
             res += mark.markText.replace(/\[插图\]/g, (match: string) => {
@@ -113,6 +114,27 @@ function findImagesInRange(imageDict: { [offset: string]: string }, range: strin
     }
 
     return result;
+}
+
+async function addMeta(bookId: string) {
+    const bookInfo = await fetchBookInfo(bookId);
+    const readInfo = await fetchReadInfo(bookInfo.bookId);
+    let markedStatus = '', readingTime = '', finishedDate = '';
+    if (readInfo) {
+        const hour = Math.floor(readInfo.readingTime / 3600);
+        if (hour > 0) {
+            readingTime += `${hour}时`;
+        }
+        const minutes = Math.floor((readInfo.readingTime % 3600) / 60);
+        if (minutes > 0) {
+            readingTime += `${minutes}分`;
+        }
+        markedStatus = readInfo.markedStatus === 4 ? '读完' : '在读',
+            finishedDate = readInfo.finishedDate ? formatTimestamp(readInfo.finishedDate * 1000) : ''; // 将秒转换为毫秒
+    }
+    const url = `https://weread.qq.com/web/reader/${calculateBookStrId(bookId)}`
+    const meta =`---\n\n封面: <img src="${bookInfo.cover}" alt="封面" width="60">\n\n分类: ${bookInfo.category ?? ''}\n\n推荐值: ${bookInfo.newRating / 10}%\n\n作者: "${bookInfo.author}"\n\n状态: ${markedStatus} \n\n阅读时长: ${readingTime} \n\n读完日期: ${finishedDate} \n\n原书链接: "[${bookInfo.title}](${url})" \n\nISBN: ${bookInfo.isbn} \n\nbookId: ${bookInfo.bookId} \n\n---\n\n`
+    return meta;
 }
 
 // 给标题添加前后缀

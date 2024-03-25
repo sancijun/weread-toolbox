@@ -1,15 +1,24 @@
-import React, { useEffect, useRef } from 'react';
-import { FloatButton } from 'antd';
+import React, { useEffect, useRef, useState } from 'react';
+import { FloatButton, notification, Modal, Button, Space, Tooltip } from 'antd';
 import {
     BookOutlined,
     HighlightOutlined,
     FireOutlined,
     CloudSyncOutlined,
     PlusCircleOutlined,
+    CopyOutlined,
+    CloudDownloadOutlined,
 } from '@ant-design/icons';
-import { message } from 'antd';
 import type { PlasmoCSConfig } from 'plasmo';
 import { copy, getBookTile, getLocalStorageData, setScreen, simulateClick, sleep } from './content-utils';
+import saveAs from 'file-saver';
+import { exportBookMarks } from '~core/core-export-local';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import MarkNav from 'markdown-navbar';
+import 'github-markdown-css/github-markdown.css';
+
+
 import './content-menu.css';
 
 export const config: PlasmoCSConfig = {
@@ -36,7 +45,9 @@ export const getRootContainer = async () => {
 }
 
 const Menu: React.FC = () => {
-
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [markdownContent, setMarkdownContent] = useState<string>('');
+    const [api, contextHolder] = notification.useNotification();
     const initWidth = useRef(0);
 
     useEffect(() => {
@@ -60,6 +71,8 @@ const Menu: React.FC = () => {
             let screen = result.screenCoefficient || 1.0
             setScreen(initWidth.current * screen)
         })
+
+        document.body.style.userSelect = 'auto';
         console.log('initWidth', initWidth.current);
 
     }, []);
@@ -93,80 +106,64 @@ const Menu: React.FC = () => {
 
     // 导出全部标注
     async function onClickExportBookMarks() {
+        const title = getBookTile();
         try {
-            message.open({ key: 'export', type: 'loading', content: '导出中，请稍等...', duration: 0 });
+            api['info']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》微信读书笔记导出中，请稍等...`, duration: null });
             await loadImage();
-            message.open({ key: 'export', type: 'loading', content: '导出中，请稍等...', duration: 0 });
-            // 通知 background.js 执行 getAllMarks
-            const title = getBookTile();
-            chrome.runtime.sendMessage({ type: "exportBookMarks", title: title }, function (resp) {
-                console.log('exportBookMarks', resp);
-                if (!resp.content || resp.content == false) {
-                    message.open({ key: 'export', type: 'error', content: '导出全部标注失败!', duration: 5 });
-                } else {
-                    copy(resp.content).then(() => {
-                        message.open({ key: 'export', type: 'success', content: '已成功导出到剪贴板!', duration: 2 });
-                    });
-                }
-
-            });
+            api['info']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》微信读书笔记导出中，请稍等...`, duration: null });
+            const content = await exportBookMarks(title, false) as string;
+            setIsModalOpen(true);
+            setMarkdownContent(content);
+            api['success']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》微信读书笔记已成功导出!`, duration: 5 });
         } catch (error) {
             console.error('Error occurred during export:', error);
-            message.open({ key: 'export', type: 'error', content: '导出全部标注失败!', duration: 2 });
+            api['error']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》微信读书笔记导出失败!`, duration: null });
         }
     }
 
     // 导出热门标注
     async function onClickExportHotBookMarks() {
+        const title = getBookTile();
         try {
-            message.open({ key: 'export', type: 'loading', content: '导出中，请稍等...', duration: 0 });
+            api['info']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》热门标注导出中，请稍等...`, duration: null });
             await loadImage();
-            message.open({ key: 'export', type: 'loading', content: '导出中，请稍等...', duration: 0 });
-            // 通知 background.js 执行 getAllMarks
-            const title = getBookTile();
-            chrome.runtime.sendMessage({ type: "exportHotBookMarks", title: title, isHot: true }, function (resp) {
-                console.log('exportHotBookMarks', resp);
-                if (!resp.content || resp.content == false) {
-                    message.open({ key: 'export', type: 'error', content: '导出热门标注失败!', duration: 5 });
-                } else {
-                    copy(resp.content).then(() => {
-                        message.open({ key: 'export', type: 'success', content: '已成功导出到剪贴板!', duration: 2 });
-                    });
-                }
-
-            });
+            api['info']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》热门标注导出中，请稍等...`, duration: null });
+            const content = await exportBookMarks(title, true) as string;
+            setIsModalOpen(true);
+            setMarkdownContent(content);
+            api['success']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》热门标注已成功导出!`, duration: 5 });
         } catch (error) {
             console.error('Error occurred during export:', error);
-            message.open({ key: 'export', type: 'error', content: '导出热门标注失败!', duration: 5 });
+            api['error']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》热门标注导出失败!`, duration: null });
         }
     }
 
     // 导出到 Notion
     async function onClickExportToNotion() {
+        const title = getBookTile();
         try {
             // 检查 databaseId 和 notionToken 是否为空
             const databaseId = await getLocalStorageData('databaseId') as string;
             const notionToken = await getLocalStorageData('notionToken') as string;
             if (!databaseId || !notionToken) {
-                message.error('请先查看使用说明，设置 Notion Database ID, Notion Token！', 10);
+                api['error']({ key: 'export', message: '导出微信读书笔记', description: '请先查看使用说明，设置 Notion Database ID, Notion Token！', duration: null });
                 return;
             }
-            message.open({ key: 'export', type: 'loading', content: '导出中，请稍等...', duration: 0 });
+            api['info']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》微信读书笔记导出中，请稍等...`, duration: null });
             await loadImage();
-            message.open({ key: 'export', type: 'loading', content: '导出中，请稍等...', duration: 0 });
-            const title = getBookTile();
+            api['info']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》微信读书笔记导出中，请稍等...`, duration: null });
+
             chrome.runtime.sendMessage({ type: "exportToNotion", title: title }, function (resp) {
                 console.log('exportToNotion', resp);
-                if (!resp.content || resp.content == false) {
-                    message.open({ key: 'export', type: 'error', content: '导出到 Notion 失败!', duration: 5 });
+                if (resp.content) {
+                    api['success']({ key: 'export', message: '微信读书笔记', description: `《${title}》微信读书笔记已同步到 Notion!`, duration: null });
                 } else {
-                    message.open({ key: 'export', type: 'success', content: '已成功导出到 Notion!', duration: 2 });
+                    api['error']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》微信读书笔记同步 Notion 失败!`, duration: null });
                 }
-
             });
         } catch (error) {
             console.error('Error occurred during export:', error);
-            message.open({ key: 'export', type: 'error', content: '导出到 Notion 失败!', duration: 2 });
+            api['error']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》微信读书笔记同步 Notion 失败!`, duration: null });
         }
     }
 
@@ -181,7 +178,7 @@ const Menu: React.FC = () => {
                 resolve(undefined);
                 return;
             }
-            message.open({ key: 'export', type: 'loading', content: '图片加载中，如果本书已加载过图片，可在设置页关闭图片加载...', duration: 0 });
+            api['info']({ key: 'export', message: '导出维信诺读书笔记', description: '图片加载中，如果本书已加载过图片，可在设置页关闭图片加载...', duration: null });
             try {
                 const catalogItem = document.querySelector('.readerControls_item.catalog') as HTMLElement;
                 simulateClick(catalogItem);
@@ -193,7 +190,7 @@ const Menu: React.FC = () => {
                 }
                 simulateClick(catalogItem);
 
-            }catch (error) {
+            } catch (error) {
                 console.log('simulateClick catalogItem error: ', error);
             }
             await sleep(1000); // 等待数据加载完成
@@ -263,7 +260,7 @@ const Menu: React.FC = () => {
         // 监听 service worker 消息
         chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
             if (msg.alert) {
-                message.error(msg.alert, 10);
+                api['error']({ key: 'export', message: '导出微信读书笔记', description: msg.alter });
                 sendResponse({ succ: 1 });
             } else if (msg.content) {
                 copy(msg.content);
@@ -285,13 +282,42 @@ const Menu: React.FC = () => {
         });
     }
 
+    function handelDownload(){
+        const title = getBookTile();
+        saveAs(new Blob([markdownContent], { type: 'text/plain' }),  `${title}.md`)
+        api['success']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》微信读书笔记已成功下载!`, duration:  10 }); 
+    }
+
+    function handelCopy(){
+        const title = getBookTile();
+        copy(markdownContent).then(() => {
+            api['success']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》微信读书笔记已成功复制到剪贴板!`, duration: 10 });
+        }); 
+    }
+
     return (
-        <FloatButton.Group onOpenChange={openChange} trigger="click" type="default" icon={<BookOutlined />} >
-            <FloatButton onClick={() => onClickExportBookMarks()} icon={<HighlightOutlined />} tooltip={<div>导出全书标注</div>} className="readerControls_item" />
-            <FloatButton onClick={() => onClickExportHotBookMarks()} icon={<FireOutlined />} tooltip={<div>导出热门标注</div>} className="readerControls_item" />
-            <FloatButton onClick={() => onClickExportToNotion()} icon={<CloudSyncOutlined />} tooltip={<div>同步到 Notion</div>} className="readerControls_item" />
-            <FloatButton onClick={() => onClickSetScreen()} icon={<PlusCircleOutlined />} tooltip={<div>调整屏幕宽度</div>} className="readerControls_item" />
-        </FloatButton.Group>
+        <>
+            {contextHolder}
+            <FloatButton.Group onOpenChange={openChange} trigger="click" type="default" icon={<BookOutlined />} >
+                <FloatButton onClick={() => onClickExportBookMarks()} icon={<HighlightOutlined />} tooltip={<div>全书标注</div>} className="readerControls_item" />
+                <FloatButton onClick={() => onClickExportHotBookMarks()} icon={<FireOutlined />} tooltip={<div>热门标注</div>} className="readerControls_item" />
+                <FloatButton onClick={() => onClickExportToNotion()} icon={<CloudSyncOutlined />} tooltip={<div>同步Notion</div>} className="readerControls_item" />
+                <FloatButton onClick={() => onClickSetScreen()} icon={<PlusCircleOutlined />} tooltip={<div>调整屏幕宽度</div>} className="readerControls_item" />
+            </FloatButton.Group>
+            <Modal title={`《${getBookTile()}》笔记 | 微信读书工具箱`} open={isModalOpen} width="50%" onCancel={()=>setIsModalOpen(false)} footer={null}>
+                <Space style={{ float: "right", marginTop: "-40px", marginRight: "30px" }}>
+                    <Tooltip placement="bottom" title='下载'>
+                        <Button type="text" onClick={handelDownload} icon={<CloudDownloadOutlined />} />
+                    </Tooltip>
+                    <Tooltip placement="bottom" title='复制'>
+                        <Button type="text" onClick={handelCopy} icon={<CopyOutlined />} />
+                    </Tooltip>
+                </Space>
+                <div id="react-md-element" className="markdown-body">
+                    <ReactMarkdown children={markdownContent} remarkPlugins={[remarkGfm]} />
+                </div>
+            </Modal>
+        </>
     )
 }
 

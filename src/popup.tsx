@@ -140,7 +140,7 @@ function SettingsPageContent() {
         name="notionToken"
         rules={[{ required: true, message: "Please enter the Notion Token" }]}
       >
-        <Input placeholder="请输入 Notion Token" />
+        <Input.Password placeholder="请输入 Notion Token" />
       </Item>
     </Form>
 

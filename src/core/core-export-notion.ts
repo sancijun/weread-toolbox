@@ -1,7 +1,6 @@
-import { fetchBestBookmarks, fetchBookInfo, fetchBookmarks, fetchChapInfos, fetchReadInfo, fetchReviews } from "~background/bg-weread-api";
+import { fetchBestBookmarks, fetchBookInfo, fetchBookmarks, fetchChapInfos, fetchReadInfo, fetchReviews, fetchShelfData } from "~core/core-weread-api";
 import { Client } from '@notionhq/client';
-import { getLocalStorageData, sendMessage, sleep } from "./bg-utils";
-import { MD5 } from 'crypto-js';
+import { calculateBookStrId, getActiveTabId, getLocalStorageData, sendMessage, sleep } from "./core-utils";
 
 /**
  * 导出笔记到 Notion
@@ -31,6 +30,65 @@ export async function exportToNotion(bookTitle: string, isHot: boolean, curChapt
         console.error("exportToNotion error:", error);
         return false;
     }
+}
+
+export async function exportAllToNotion(databaseId: string, notionToken: string) {
+    let tabId
+    try {
+        const shelf = await fetchShelfData();
+        console.log('databaseId', databaseId, 'notionToken', notionToken, 'books', shelf.books.length);
+        const client = new Client({ auth: notionToken, });
+        tabId = await getActiveTabId();
+        let noMarksCount = 0, existCount = 0;
+        console.log('tabId', tabId)
+        for (let i = 0; i < shelf.books.length; i++) {
+            const book = shelf.books[i];
+            try{
+                sendMessage({tabId: tabId, message: { key: 'exportAllToNotion', type: 'info', title: '微信读书笔记同步 Notion', content: `正在导出《${book.title}》，当前进度 ${i+1} / ${shelf.books.length} ，导出完成前请勿关闭或刷新本页面，` } })
+                const exist = await isExist(client, databaseId, book.bookId);
+                if (exist) {
+                    existCount++;
+                    continue;
+                };
+                const children = await getNotionChildrens(book.title, false, null, book.bookId);
+                if (children.length == 1) {
+                    console.log("本书没有任何笔记", book.title)
+                    noMarksCount++;
+                    continue;
+                }
+                const id = await insertToNotion(client, databaseId, book.bookId);
+                console.log('insert to notion id=', id);
+                await addChildren(client, id, children);
+            }catch(error){
+                console.error("Export Single To Notion Error:", book, error);
+            }
+        }
+        sendMessage({tabId: tabId, message: { key: 'exportAllToNotion', type: 'success', title: '微信读书笔记同步 Notion', content: `导出完成，共处理 ${shelf.books.length} 本书，其中 ${noMarksCount} 本书没有笔记，${existCount} 本书的笔记已存在，成功导出 ${shelf.books.length - noMarksCount - existCount} 篇微信读书笔记！` } })
+        return true;
+    } catch (error) {
+        sendMessage({tabId: tabId, message: { key: 'exportAllToNotion', type: 'error', title: '微信读书笔记同步 Notion', content: '导出失败，请检查 Notion 设置是否正确。可联系三此君，反馈异常详情！'} })
+        console.error("Export All To Notion Error:", error);
+        return false;
+    }
+}
+
+async function isExist(client: Client, databaseId: string, bookId: string): Promise<Boolean> {
+    await sleep(300); // 0.3-second delay
+
+    const filter = {
+        property: "BookId",
+        rich_text: {
+            equals: bookId
+        }
+    };
+
+    const response = await client.databases.query({
+        database_id: databaseId,
+        filter: filter
+    });
+    const result = response.results.length > 0;
+    console.log("check exist:", bookId, result);
+    return result;
 }
 
 // 检查 Notion 中是否存在，如果存在则删除
@@ -91,7 +149,7 @@ async function insertToNotion(client: Client, databaseId: string, bookId: string
                 {
                     type: 'text',
                     text: {
-                        content: bookInfo.category??'',
+                        content: bookInfo.category ?? '',
                     },
                 },
             ],
@@ -207,11 +265,11 @@ async function addChildren(client: Client, id: string, children: any[]) {
  * @param isHot 
  * @param curChapterTitle 
  */
-async function getNotionChildrens(bookTitle: string, isHot: boolean, curChapterTitle?: string) {
+async function getNotionChildrens(bookTitle: string, isHot: boolean, curChapterTitle?: string, bookId?: string) {
     try {
         const childrens = [];
         // Get book ID and image data
-        const bookId = await getLocalStorageData(`${bookTitle}-bookId`) as string;
+        bookId = bookId ? bookId : await getLocalStorageData(`${bookTitle}-bookId`) as string;
         const imgData = await getLocalStorageData(`${bookTitle}-ImgData`) as {};
         console.log('bookId', bookId, 'imgData', imgData);
 
@@ -220,7 +278,12 @@ async function getNotionChildrens(bookTitle: string, isHot: boolean, curChapterT
             ? (await fetchBestBookmarks(bookId))?.items || []
             : (await fetchBookmarks(bookId))?.updated || [];
         const reviews = (await fetchReviews(bookId))?.reviews.map(item => item.review) || [];
-        marks.push(...reviews)
+        if (reviews) marks.push(...reviews);
+        
+        if (marks.length == 0) {
+            childrens.push(getParagraph(`《${bookTitle}》本书还没有任何笔记。`))
+            return childrens;
+        }
         const groupedMarks = marks.reduce((groupedMarks: Record<number, any[]>, mark: any) => {
             const { chapterUid } = mark;
             groupedMarks[chapterUid] = groupedMarks[chapterUid] || [];
@@ -244,7 +307,7 @@ async function getNotionChildrens(bookTitle: string, isHot: boolean, curChapterT
                 }
             }
             if (!groupedMarks[chapterUid]) continue; // If no marks in this chapter, skip
-            groupedMarks[chapterUid].sort((a, b) => parseInt(a.range.substr(0,a.range.indexOf('-'))) > parseInt(b.range.substr(0,b.range.indexOf('-'))) ? 1 : -1)
+            groupedMarks[chapterUid].sort((a, b) => parseInt(a.range.substr(0, a.range.indexOf('-'))) > parseInt(b.range.substr(0, b.range.indexOf('-'))) ? 1 : -1)
             for (const mark of groupedMarks[chapterUid]) { // Iterate over marks within a chapter
                 if (mark.abstract && mark.content) { // If it's a thought
                     const thoughtContent = mark.content; // Thought content
@@ -274,53 +337,7 @@ async function getNotionChildrens(bookTitle: string, isHot: boolean, curChapterT
     }
 }
 
-function transformId(bookId: string): [string, string[]] {
-    const idLength = bookId.length;
 
-    if (/^\d*$/.test(bookId)) {
-        const ary: string[] = [];
-        for (let i = 0; i < idLength; i += 9) {
-            ary.push(parseInt(bookId.slice(i, i + 9)).toString(16));
-        }
-        return ['3', ary];
-    }
-
-    let result = '';
-    for (let i = 0; i < idLength; i++) {
-        result += bookId.charCodeAt(i).toString(16);
-    }
-    return ['4', [result]];
-}
-
-function calculateBookStrId(bookId: string): string {
-    const md5Digest = MD5(bookId).toString();
-    let result = md5Digest.slice(0, 3);
-
-    const [code, transformedIds] = transformId(bookId);
-    result += code + '2' + md5Digest.slice(-2);
-
-    for (let i = 0; i < transformedIds.length; i++) {
-        let hexLengthStr = transformedIds[i].length.toString(16);
-        if (hexLengthStr.length === 1) {
-            hexLengthStr = '0' + hexLengthStr;
-        }
-
-        result += hexLengthStr + transformedIds[i];
-
-        if (i < transformedIds.length - 1) {
-            result += 'g';
-        }
-    }
-
-    if (result.length < 20) {
-        result += md5Digest.slice(0, 20 - result.length);
-    }
-
-    const finalMd5Digest = MD5(result).toString();
-    result += finalMd5Digest.slice(0, 3);
-
-    return result;
-}
 
 function getHeading(level: number, content: string) {
     let headingType: 'heading_1' | 'heading_2' | 'heading_3' = 'heading_3';
@@ -375,7 +392,7 @@ function getImage(url: string) {
     const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.tif', '.tiff', '.ico', '.webp', '.psd', '.ai', '.eps', '.raw', '.indd', '.pdf']; // 常见的图片扩展名列表
     const isImage = imageExtensions.some(ext => url.toLowerCase().endsWith(ext));
     if (!isImage) {
-         return getParagraph("图片链接格式错误，您可以访问该链接获取图片，并复制粘贴到此处：" + url);
+        return getParagraph("图片链接格式错误，您可以访问该链接获取图片，并复制粘贴到此处：" + url);
     }
 
     return {

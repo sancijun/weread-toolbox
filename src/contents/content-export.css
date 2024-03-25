@@ -1,0 +1,18 @@
+.plasmo-csui-container button {
+    height: 35px !important;
+    background-color: #edeeef !important;
+}
+
+.plasmo-csui-container button:hover {
+    background-color: #e0e0e0 !important;
+}
+
+.plasmo-csui-container span {
+    color: #212832 !important;
+}
+
+.plasmo-csui-container {
+    position: relative !important;
+    float: right !important;
+    margin-right: 210px;
+}
