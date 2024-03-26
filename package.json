@@ -24,6 +24,8 @@
     "github-markdown-css": "^5.5.1",
     "jszip": "^3.10.1",
     "markdown-navbar": "^1.4.3",
+    "markmap": "^0.6.1",
+    "markmap-lib": "^0.16.1",
     "plasmo": "0.74.2",
     "react": "18.2.0",
     "react-dom": "18.2.0",

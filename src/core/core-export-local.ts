@@ -35,6 +35,7 @@ export async function exportBookMarks(bookTitle: string, isHot: boolean, bookId?
         const chapters = chapInfos.data[0].updated;
         // 处理标注和目录，生成 markdown 文本
         let res = await addMeta(bookId);
+        res += `# ${bookTitle}\n\n`;
         for (const chapter of chapters) {
             const { title, level, anchors, chapterUid } = chapter;
             // 如果指定了章节标题，只处理该章节

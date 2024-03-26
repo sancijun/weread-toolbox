@@ -8,6 +8,9 @@ import {
     PlusCircleOutlined,
     CopyOutlined,
     CloudDownloadOutlined,
+    RetweetOutlined,
+    FullscreenOutlined,
+    FullscreenExitOutlined,
 } from '@ant-design/icons';
 import type { PlasmoCSConfig } from 'plasmo';
 import { copy, getBookTile, getLocalStorageData, setScreen, simulateClick, sleep } from './content-utils';
@@ -15,7 +18,7 @@ import saveAs from 'file-saver';
 import { exportBookMarks } from '~core/core-export-local';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import MarkNav from 'markdown-navbar';
+import Markmap from '../component/Markmap';
 import 'github-markdown-css/github-markdown.css';
 
 
@@ -46,6 +49,8 @@ export const getRootContainer = async () => {
 
 const Menu: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isMarkmapModel, setIsMarkmapModel] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const [markdownContent, setMarkdownContent] = useState<string>('');
     const [api, contextHolder] = notification.useNotification();
     const initWidth = useRef(0);
@@ -282,17 +287,17 @@ const Menu: React.FC = () => {
         });
     }
 
-    function handelDownload(){
+    function handelDownload() {
         const title = getBookTile();
-        saveAs(new Blob([markdownContent], { type: 'text/plain' }),  `${title}.md`)
-        api['success']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》微信读书笔记已成功下载!`, duration:  10 }); 
+        saveAs(new Blob([markdownContent], { type: 'text/plain' }), `${title}.md`)
+        api['success']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》微信读书笔记已成功下载!`, duration: 10 });
     }
 
-    function handelCopy(){
+    function handelCopy() {
         const title = getBookTile();
         copy(markdownContent).then(() => {
             api['success']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》微信读书笔记已成功复制到剪贴板!`, duration: 10 });
-        }); 
+        });
     }
 
     return (
@@ -304,19 +309,45 @@ const Menu: React.FC = () => {
                 <FloatButton onClick={() => onClickExportToNotion()} icon={<CloudSyncOutlined />} tooltip={<div>同步Notion</div>} className="readerControls_item" />
                 <FloatButton onClick={() => onClickSetScreen()} icon={<PlusCircleOutlined />} tooltip={<div>调整屏幕宽度</div>} className="readerControls_item" />
             </FloatButton.Group>
-            <Modal title={`《${getBookTile()}》笔记 | 微信读书工具箱`} open={isModalOpen} width="50%" onCancel={()=>setIsModalOpen(false)} footer={null}>
-                <Space style={{ float: "right", marginTop: "-40px", marginRight: "30px" }}>
-                    <Tooltip placement="bottom" title='下载'>
-                        <Button type="text" onClick={handelDownload} icon={<CloudDownloadOutlined />} />
-                    </Tooltip>
-                    <Tooltip placement="bottom" title='复制'>
-                        <Button type="text" onClick={handelCopy} icon={<CopyOutlined />} />
-                    </Tooltip>
-                </Space>
-                <div id="react-md-element" className="markdown-body">
-                    <ReactMarkdown children={markdownContent} remarkPlugins={[remarkGfm]} />
-                </div>
+            <Modal title={`《${getBookTile()}》笔记 | 微信读书工具箱`} open={isModalOpen} width={isFullscreen ? "100%" : "50%"} style={{ height: isFullscreen ? "100vh" : "auto"  }} onCancel={() => setIsModalOpen(false)} footer={null}>
+                {isMarkmapModel ? (
+                    <div id="react-markmap-content" >
+                        <Space style={{ float: "right", marginTop: "-40px", marginRight: "30px" }}>
+                            <Tooltip placement="bottom" title='转换'>
+                                <Button type="text" onClick={() => setIsMarkmapModel(!isMarkmapModel)} icon={<RetweetOutlined />} />
+                            </Tooltip>
+                            <Tooltip placement="bottom" title={isFullscreen ? '退出全屏' : '全屏'}>
+                                <Button type="text" onClick={() => setIsFullscreen(!isFullscreen)} icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}  />
+                            </Tooltip>
+                            <Tooltip placement="bottom" title='下载'>
+                                <Button type="text" onClick={handelDownload} icon={<CloudDownloadOutlined />} />
+                            </Tooltip>
+                            <Tooltip placement="bottom" title='复制'>
+                                <Button type="text" onClick={handelCopy} icon={<CopyOutlined />} />
+                            </Tooltip>
+                        </Space>
+                        <Markmap initValue={markdownContent} ></Markmap>
+                    </div>
+                ) : (
+                    <div id="react-markdown-content">
+                        <Space style={{ float: "right", marginTop: "-40px", marginRight: "30px" }}>
+                            <Tooltip placement="bottom" title='转换'>
+                                <Button type="text" onClick={() => setIsMarkmapModel(!isMarkmapModel)} icon={<RetweetOutlined />} />
+                            </Tooltip>
+                            <Tooltip placement="bottom" title='下载'>
+                                <Button type="text" onClick={handelDownload} icon={<CloudDownloadOutlined />} />
+                            </Tooltip>
+                            <Tooltip placement="bottom" title='复制'>
+                                <Button type="text" onClick={handelCopy} icon={<CopyOutlined />} />
+                            </Tooltip>
+                        </Space>
+                        <div className="markdown-body">
+                            <ReactMarkdown children={markdownContent} remarkPlugins={[remarkGfm]} />
+                        </div>
+                    </div>
+                )}
             </Modal>
+
         </>
     )
 }
