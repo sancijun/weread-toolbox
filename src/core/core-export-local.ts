@@ -6,55 +6,41 @@ import { calculateBookStrId, formatTimestamp, getLocalStorageData, sendMessage }
  * @param chapterImgData 
  * @param curChapterTitle 
  */
-export async function exportBookMarks(bookTitle: string, isHot: boolean, bookId?: string) {
-    try {
-        // 获取书籍 id 和 图片数据
-        bookId = bookId ? bookId : await getLocalStorageData(`${bookTitle}-bookId`) as string;
-        const imgData = await getLocalStorageData(`${bookTitle}-ImgData`) as {};
-        console.log('bookTitle', bookTitle, 'bookId', bookId, 'imgData', imgData);
-        if (!bookId) {
-            sendMessage({ message: { alert: '信息缺失，请点击上一页(或下一页)，加载更多信息后重试！' } });
-            return false;
-        }
-        // 获取标注并根据 chapterUid 分组
-        const marks = isHot
-            ? (await fetchBestBookmarks(bookId))?.items || []
-            : (await fetchBookmarks(bookId))?.updated || [];
-        const reviews = (await fetchReviews(bookId))?.reviews.map(item => item.review) || [];
-        marks.push(...reviews)
-        if (marks.length == 0) return `《${bookTitle}》 还没有任何笔记。`
-        const groupedMarks = marks.reduce((groupedMarks: Record<number, any[]>, mark: any) => {
-            const { chapterUid } = mark;
-            groupedMarks[chapterUid] = groupedMarks[chapterUid] || [];
-            groupedMarks[chapterUid].push(mark);
-            return groupedMarks;
-        }, {});
+export async function exportBookMarks(bookId: string, bookTitle: string, isHot: boolean) {
+    // 获取图片数据
+    const imgData = await getLocalStorageData(`${bookTitle}-ImgData`) as {};
+    console.log('bookTitle', bookTitle, 'bookId', bookId, 'imgData', imgData);
+    // 获取标注并根据 chapterUid 分组
+    const marks = isHot
+        ? (await fetchBestBookmarks(bookId))?.items || []
+        : (await fetchBookmarks(bookId))?.updated || [];
+    const reviews = (await fetchReviews(bookId))?.reviews.map(item => item.review) || [];
+    marks.push(...reviews)
+    if (marks.length == 0) return `《${bookTitle}》 还没有任何笔记。`
 
-        // 获取目录
-        const chapInfos = await fetchChapInfos(bookId);
-        const chapters = chapInfos.data[0].updated;
-        // 处理标注和目录，生成 markdown 文本
-        let res = await addMeta(bookId);
-        for (const chapter of chapters) {
-            const { title, level, anchors, chapterUid } = chapter;
-            // 如果指定了章节标题，只处理该章节
-            // if (curChapterTitle && title !== curChapterTitle) continue;
-            res += `${getTitleAddedPreAndSuf(title, level)}\n\n`;
-            if (anchors && anchors[0]?.title !== title) {
-                for (const anchor of anchors) {
-                    res += `${getTitleAddedPreAndSuf(anchor.title, anchor.level)}\n\n`;
-                }
+    const groupedMarks = marks.reduce((groupedMarks: Record<number, any[]>, mark: any) => {
+        const { chapterUid } = mark;
+        groupedMarks[chapterUid] = groupedMarks[chapterUid] || [];
+        groupedMarks[chapterUid].push(mark);
+        return groupedMarks;
+    }, {});
+
+    // 获取目录
+    const chapInfos = await fetchChapInfos(bookId);
+    const chapters = chapInfos.data[0].updated;
+    // 处理标注和目录，生成 markdown 文本
+    let res = await addMeta(bookId);
+    for (const chapter of chapters) {
+        const { title, level, anchors, chapterUid } = chapter;
+        res += `${'#'.repeat(level + 1)} ${title}\n\n`;
+        if (anchors && anchors[0]?.title !== title) {
+            for (const anchor of anchors) {
+                res += `${'#'.repeat(anchor.level + 1)} ${anchor.title}\n\n`;
             }
-            res += traverseMarks(groupedMarks[chapterUid] || [], imgData);
         }
-
-        // 发送生成的 markdown 文本给前端
-        return res;
-    } catch (error) {
-        sendMessage({ message: { alert: `《${bookTitle}》导出失败，可联系三此君，反馈异常详情！` } });
-        console.error(bookTitle, bookId, "exportBookMarks error:", error);
-        return `《${bookTitle}》导出失败，可联系三此君，反馈异常详情！ ${error}`;
+        res += traverseMarks(groupedMarks[chapterUid] || [], imgData);
     }
+    return res.replace(/●|•|\d+\. /g, '\n\n- ');
 }
 
 const escapeRegExp = require('lodash.escaperegexp');
@@ -66,24 +52,15 @@ function traverseMarks(marks: any[], chapterImgData: { [key: string]: string }) 
     marks.sort((a, b) => parseInt(a.range.substr(0, a.range.indexOf('-'))) > parseInt(b.range.substr(0, b.range.indexOf('-'))) ? 1 : -1)
     for (const mark of marks) { // 遍历章内标注
         if (mark.abstract && mark.content) { // 如果为想法
-            const thouContent = `${Config.thouPre}${mark.content}${Config.thouSuf}\n\n`; // 想法
-            let thouAbstract = `${Config.thouMarkPre}${mark.abstract}${Config.thouMarkSuf}\n\n`; // 想法所标注的内容
+            let thouAbstract = `${mark.abstract}\n\n`; // 想法所标注的内容
+            const thouContent = `> ${mark.content}\n\n`; // 想法
 
             if (mark.abstract === prevMarkText) { // 想法所对应文本与上一条标注相同时
-                if (Config.thoughtTextOptions === ThoughtTextOptions.JustMark) {
-                    thouAbstract = ''; // 如果只保留标注文本，则 thouAbstract 设为空
-                } else if (Config.thoughtTextOptions === ThoughtTextOptions.JustThought) {
-                    res = res.replace(new RegExp(escapeRegExp(tempRes) + `$`), ""); // 如果只保留想法所对应的文本，将上一次追加得到的标注文本（tempRes）删掉
-                }
-                prevMarkText = '';
+                res = res.replace(new RegExp(escapeRegExp(tempRes) + `$`), ""); 
             }
-
-            // 是否将想法添加到对应标注之前
-            if (Config.thoughtFirst) {
-                res += thouContent + thouAbstract;
-            } else {
-                res += thouAbstract + thouContent;
-            }
+            // 将想法添加到对应标注之后
+            prevMarkText = mark.abstract;
+            res += thouAbstract + thouContent;
         } else if (mark.markText.includes("[插图]") && chapterImgData) { // 插图
             let imgData = findImagesInRange(chapterImgData, mark.range);
             let index = 0;
@@ -91,6 +68,7 @@ function traverseMarks(marks: any[], chapterImgData: { [key: string]: string }) 
                 return `![插图](${imgData[index++]})` || match;
             }) + "\n\n";
         } else { // 标注
+            if(prevMarkText === mark.markText) continue;
             prevMarkText = mark.markText;
             tempRes = regexpReplace(prevMarkText);
             tempRes = `${addMarkPreAndSuf(tempRes, mark.style)}\n\n`;
@@ -133,42 +111,20 @@ async function addMeta(bookId: string) {
             finishedDate = readInfo.finishedDate ? formatTimestamp(readInfo.finishedDate * 1000) : ''; // 将秒转换为毫秒
     }
     const url = `https://weread.qq.com/web/reader/${calculateBookStrId(bookId)}`
-    const meta =`---\n\n封面: <img src="${bookInfo.cover}" alt="封面" width="60">\n\n分类: ${bookInfo.category ?? ''}\n\n推荐值: ${bookInfo.newRating / 10}%\n\n作者: "${bookInfo.author}"\n\n状态: ${markedStatus} \n\n阅读时长: ${readingTime} \n\n读完日期: ${finishedDate} \n\n原书链接: "[${bookInfo.title}](${url})" \n\nISBN: ${bookInfo.isbn} \n\nbookId: ${bookInfo.bookId} \n\n---\n\n`
+    const meta = `---\n\n封面: <img src="${bookInfo.cover}" alt="封面" width="60">\n\n分类: ${bookInfo.category ?? ''}\n\n推荐值: ${bookInfo.newRating / 10}%\n\n作者: "${bookInfo.author}"\n\n状态: ${markedStatus} \n\n阅读时长: ${readingTime} \n\n读完日期: ${finishedDate} \n\n原书链接: "[${bookInfo.title}](${url})" \n\nISBN: ${bookInfo.isbn} \n\nbookId: ${bookInfo.bookId} \n\n---\n\n`
     return meta;
-}
-
-// 给标题添加前后缀
-function getTitleAddedPreAndSuf(title: string, level: number) {
-    let newTitle = '';
-    switch (level) {
-        case 1:
-        case 2:
-        case 3:
-            newTitle = Config[`lev${level}Pre`] + title + Config[`lev${level}Suf`];
-            break;
-        case 4: //添加 4 5 6 级及 default 是为了处理特别的书（如导入的书籍）
-        case 5:
-        case 6:
-        default:
-            const { lev3Pre, lev3Suf } = Config;
-            newTitle = `${lev3Pre}${title}${lev3Suf}`;
-            break;
-    }
-    return newTitle;
 }
 
 // 根据标注类型获取前后缀
 function addMarkPreAndSuf(markText: string, style: number) {
 
-    const pre = (style == 0) ? Config["s1Pre"]
-        : (style == 1) ? Config["s2Pre"]
-            : (style == 2) ? Config["s3Pre"]
-                : ""
+    const pre = (style == 0) ? ""
+        : (style == 1) ? "**"
+            : (style == 2) ? "": ""
 
-    const suf = (style == 0) ? Config["s1Suf"]
-        : (style == 1) ? Config["s2Suf"]
-            : (style == 2) ? Config["s3Suf"]
-                : ""
+    const suf = (style == 0) ? ""
+        : (style == 1) ? "**"
+            : (style == 2) ? "" : ""
 
     return pre + markText + suf
 }
@@ -197,61 +153,13 @@ function regexpReplace(markText: string) {
 }
 
 // ======== 以下为配置项 ========
-// "选中后动作"选项
-export enum SelectActionOptions {
-    None = "underlineNone",
-    Copy = "copy",
-    Bg = "underlineBg",
-    Straight = "underlineStraight",
-    HandWrite = "underlineHandWrite"
-}
-
-// "想法所对应文本被标注时保留"选项
-export enum ThoughtTextOptions {
-    JustThought = "thoughtTextThought",
-    All = "thoughtTextAll",
-    JustMark = "thoughtTextMark"
-}
 
 const DefaultRegexPattern = { replacePattern: '', checked: false };
 
 var Config = {
-    s1Pre: "",
-    s1Suf: "",
-    s2Pre: "**",
-    s2Suf: "**",
-    s3Pre: "",
-    s3Suf: "",
-    lev1Pre: "## ",
-    lev1Suf: "",
-    lev2Pre: "### ",
-    lev2Suf: "",
-    lev3Pre: "#### ",
-    lev3Suf: "",
-    thouPre: "==",
-    thouSuf: "==",
-    thouMarkPre: "> ",
-    thouMarkSuf: "",
     codePre: "```",
     codeSuf: "```",
-    displayN: false,
-    mpShrink: false,
-    mpContent: false,
-    mpAutoLoad: true,
-    allTitles: false,
-    addThoughts: true,
-    thoughtFirst: false,
-    enableDevelop: false,
-    enableStatistics: false,
-    enableOption: true,
-    enableCopyImgs: true,
-    enableFancybox: true,
-    enableThoughtEsc: true,
-    backupName: "默认设置",
-    selectAction: SelectActionOptions.None,
-    thoughtTextOptions: ThoughtTextOptions.JustThought,
     //如果不设置默认值，则在设置页初始化时需要考虑到 
     re: { re1: DefaultRegexPattern, re2: DefaultRegexPattern, re3: DefaultRegexPattern, re4: DefaultRegexPattern, re5: DefaultRegexPattern },
-    flag: 0
 }
 
