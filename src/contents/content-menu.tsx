@@ -181,13 +181,15 @@ const Menu: React.FC = () => {
         return new Promise(async (resolve, reject) => {
             // 获取 isExportImage 的值
             const isExportImage = await getLocalStorageData('isExportImage') as boolean;
-            console.log('isExportImage is ', isExportImage);
-            if (isExportImage == false) {
-                // 不执行后续逻辑
+            const isImageLoadedKey = `${getBookTile()}-isImageLoaded`;
+            const isImageLoaded = await getLocalStorageData(isImageLoadedKey) as boolean;
+            console.log('load image', isExportImage, isImageLoaded);
+            if (!isExportImage && isImageLoaded) {
+                // 如果不强制导出图片，并且加载过图片，则不执行后续逻辑
                 resolve(undefined);
                 return;
             }
-            api['info']({ key: 'export', message: '导出微信读书笔记', description: '图片加载中，如果本书已加载过图片，可在设置页关闭图片加载...', duration: null });
+            api['info']({ key: 'export', message: '导出微信读书笔记', description: '图片加载中，首次导出时会加载图片，如果图片加载有问题，可在设置也开启强制加载图片后重试...', duration: null });
             try {
                 const catalogItem = document.querySelector('.readerControls_item.catalog') as HTMLElement;
                 simulateClick(catalogItem);
@@ -217,6 +219,8 @@ const Menu: React.FC = () => {
             nextPageButton.dispatchEvent(evt);
             setTimeout(() => clickReaderFooterButton(resolve), 1000);
         } else {
+            const isImageLoadedKey = `${getBookTile()}-isImageLoaded`;
+            chrome.storage.local.set({ [isImageLoadedKey]: true}, () => { console.log("image load success.");});
             resolve(); // 图片加载完成，解析Promise
         }
     }
@@ -314,7 +318,7 @@ const Menu: React.FC = () => {
             </FloatButton.Group>
             <Modal title={`微信读书工具箱 |《${getBookTile()}》笔记`} open={isModalOpen} width="50%" onCancel={()=>setIsModalOpen(false)} footer={null} style={{ top: 10 }}>
                 <Space style={{ float: "right", marginTop: "-40px", marginRight: "30px" }}>
-                    <Tooltip placement="bottom" title='下载M'>
+                    <Tooltip placement="bottom" title='下载'>
                         <Button type="text" onClick={downloadMarkdown} icon={<CloudDownloadOutlined />} />
                     </Tooltip>
                     <Tooltip placement="bottom" title='复制'>
