@@ -1,7 +1,7 @@
 
 
 async function fetchBookmarks(bookId: string) {
-    const url = `https://weread.qq.com/web/book/bookmarklist?bookId=${bookId}`;
+    const url = `https://i.weread.qq.com/book/bookmarklist?bookId=${bookId}`;
     return await getJson(url);
 }
 
@@ -29,6 +29,12 @@ async function fetchReviews(bookId: string) {
     return await getJson(url)
 }
 
+async function fetchShelfData(){
+    const data = await getJson('https://weread.qq.com/web/shelf/sync');
+    console.log(data);
+    return data;
+}
+
 async function getJson(url: string) {
     try {
         let resp = await fetch(url, {
@@ -44,4 +50,4 @@ async function getJson(url: string) {
     }
 }
 
-export { fetchBookmarks, fetchChapInfos, fetchBestBookmarks, fetchBookInfo, fetchReadInfo, fetchReviews };
+export { fetchBookmarks, fetchChapInfos, fetchBestBookmarks, fetchBookInfo, fetchReadInfo, fetchReviews, fetchShelfData };

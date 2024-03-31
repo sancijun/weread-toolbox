@@ -1,5 +1,5 @@
-import { exportToNotion } from "~background/bg-export-notion";
-import { exportBookMarks } from "~background/bg-exporter";
+import { exportAllToNotion, exportToNotion } from "~core/core-export-notion";
+import { exportBookMarks } from "~core/core-export-local";
 
 // 监听消息
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -19,6 +19,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             return true;
         case "exportToNotion":
             exportToNotion(msg.title, false).then((content) => {
+                sendResponse({ content: content });
+            });
+            return true;
+        case "exportAllToNotion":
+            exportAllToNotion(msg.databaseId, msg.notionToken).then((content) => {
                 sendResponse({ content: content });
             });
             return true;

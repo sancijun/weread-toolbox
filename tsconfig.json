@@ -6,6 +6,7 @@
     "paths": {
       "~*": ["./src/*"]
     },
-    "baseUrl": "."
+    "baseUrl": ".",
+    "esModuleInterop": true
   }
 }
