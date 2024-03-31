@@ -321,7 +321,7 @@ const Menu: React.FC = () => {
                 <FloatButton onClick={() => onClickExportToNotion()} icon={<CloudSyncOutlined />} tooltip={<div>同步Notion</div>} className="readerControls_item" />
                 <FloatButton onClick={() => onClickSetScreen()} icon={<PlusCircleOutlined />} tooltip={<div>调整屏幕宽度</div>} className="readerControls_item" />
             </FloatButton.Group>
-            <Modal title={`微信读书工具箱 |《${getBookTile()}》笔记`} open={isModalOpen} width={isFullscreen ? "100%" : "50%"} style={{ height: isFullscreen ? "100vh" : "auto"  }} onCancel={() => setIsModalOpen(false)} footer={null}>
+            <Modal title={`微信读书工具箱 |《${getBookTile()}》笔记`} open={isModalOpen} width={isFullscreen ? "100%" : "50%"} style={{ height: isFullscreen ? "100vh" : "auto", top: 10  }} onCancel={() => setIsModalOpen(false)} footer={null}>
                 {isMarkmapModel ? (
                     <div id="react-markmap-content" >
                         <Space style={{ float: "right", marginTop: "-40px", marginRight: "30px" }}>
