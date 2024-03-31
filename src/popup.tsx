@@ -102,8 +102,8 @@ function SettingsPageContent() {
       <Item
         label={
           <span>
-            是否加载图片&nbsp;
-            <Tooltip title="如果本书已经加载过图片，则无需重复加载，关闭图片加载可加速导出。">
+            强制图片加载&nbsp;
+            <Tooltip title="如果开启强制图片加载，则每次导出笔记都会重新加载图片，否则只有在首次导出时才会加载图片。">
               <QuestionCircleOutlined />
             </Tooltip>
           </span>
@@ -112,7 +112,7 @@ function SettingsPageContent() {
         valuePropName="checked"
         rules={[{ required: true }]}
       >
-        <Switch defaultChecked/>
+        <Switch/>
       </Item>
       <Item
         label={

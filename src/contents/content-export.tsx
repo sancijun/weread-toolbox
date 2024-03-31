@@ -19,9 +19,9 @@ export const config: PlasmoCSConfig = {
 export const getRootContainer = async () => {
     let container;
     for (let retryCount = 0; retryCount < 50 && !container; retryCount++) {
+        await sleep(200)
         container = document.querySelector('.shelf_download_app');
         console.log('container', container);
-        await sleep(500)
     }
     const menuContainer = document.createElement('div');
     container.insertAdjacentElement('beforebegin', menuContainer);
@@ -36,18 +36,12 @@ const Exporter: React.FC = () => {
     useEffect(() => {
         // 监听 service worker 消息
         chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
-            if(msg.type == 'download'){
-                console.log('download content', msg.content);
-                saveAs(msg.content, `weread-toolbox-export-${getCurrentTimestamp()}.zip`);
-            }else{
-                api[msg.type]({
-                    key: msg.key,
-                    message: msg.title,
-                    description: msg.content,
-                    duration: null,
-                });
-            }
-            
+            api[msg.type]({
+                key: msg.key,
+                message: msg.title,
+                description: msg.content,
+                duration: null,
+            });
             sendResponse({ succ: 1 });
         });
     }, []);
@@ -90,76 +84,33 @@ const Exporter: React.FC = () => {
                 const book = shelf.books[i];
                 try {
                     api['info']({ key: 'exportAllToLocal', message:'全量导出微信读书笔记', description: `正在导出《${book.title}》，当前进度 ${i + 1} / ${shelf.books.length} ，导出完成前请勿关闭或刷新本页面，`, duration: null, });
-                    const content = await exportBookMarks(book.title, false, book.bookId);
+                    const content = await exportBookMarks(book.bookId, book.title, false);
                     if(content && !content.includes("没有任何笔记")) {
                         zip.file(`${book.title}.md`, content);
                     }else{
                         noMarkCount++;
                     }
                 } catch (error) {
-                    console.error("Export Single To Local Error:", book, error);
+                    console.error("export single to local error:", book.title, error);
                 }
             }
             const f = await zip.generateAsync({ type: 'blob' });
             api['success']({ key: 'exportAllToLocal', message:'全量导出微信读书笔记', description: `导出完成，共处理 ${shelf.books.length } 本书籍，其中 ${noMarkCount} 本书籍没有笔记，成功导出 ${shelf.books.length-noMarkCount} 篇笔记。`, duration: null, });
             saveAs(f, `weread-toolbox-export-${getCurrentTimestamp()}.zip`);
         } catch (error) {
-            api['error']({ key: 'exportAllToLocal', message:'全量导出微信读书笔记', description: '导出失败，请检查 Notion 设置是否正确。可联系三此君，反馈异常详情！', duration: null, })
-            console.error("Export All To Local Error:", error);
+            api['error']({ key: 'exportAllToLocal', message:'全量导出微信读书笔记', description: `导出失败，可联系三此君，反馈异常详情！${error}`, duration: null, })
+            console.error("export all to local error:", error);
             return false;
         }
-    }
-
-
-    async function onClickCancel() {
-        setIsModalOpen(false);
     }
 
     return (
         <>
             {contextHolder}
-            <Button onClick={showModal} shape="round" type="text" className="shelf_download_app">导出微信读书笔记</Button>
-            <Modal title="全量导出微信读书笔记" open={isModalOpen} onCancel={onClickCancel}
-                footer={[
-                    <Button key="exportToNotion" onClick={onClickExportAllToNotion} >
-                        同步Notion
-                    </Button>,
-                    <Button key="exportToLocal" onClick={onClickExportAllToLocal} >
-                        下载到本地
-                    </Button>,
-                ]}>
-                <Typography.Text>你可以选择全量导出到本地或者全量同步到 Notion。</Typography.Text>
-                <Typography.Text>全量同步 Notion 不会覆盖数据库中已经存在的内容。</Typography.Text>
-                <Form form={form} labelCol={{ span: 8 }} wrapperCol={{ span: 24 }} layout="vertical" style={{ marginTop: "24px"}}>
-                    <Form.Item
-                        label={
-                            <span>
-                                Database ID&nbsp;
-                                <Tooltip title="点击关于->使用说明，查看如何获取 Notion Database ID">
-                                    <QuestionCircleOutlined />
-                                </Tooltip>
-                            </span>
-                        }
-                        name="databaseId"
-                        rules={[{ required: true, message: "Please enter the Database ID" }]}
-                    >
-                        <Input placeholder="请输入 Notion Database ID" />
-                    </Form.Item>
-                    <Form.Item
-                        label={
-                            <span>
-                                Notion Token&nbsp;
-                                <Tooltip title="点击关于->使用说明，查看如何获取 Notion Token">
-                                    <QuestionCircleOutlined />
-                                </Tooltip>
-                            </span>
-                        }
-                        name="notionToken"
-                        rules={[{ required: true, message: "Please enter the Notion Token" }]}
-                    >
-                        <Input.Password placeholder="请输入 Notion Token" />
-                    </Form.Item>
-                </Form>
+            <Button onClick={showModal} shape="round" type="text" className="shelf_download_app">全量导出微信读书笔记</Button>
+            <Modal title="全量导出微信读书笔记" open={isModalOpen} onOk={onClickExportAllToLocal} okText="下载" onCancel={()=>setIsModalOpen(false)} cancelText="取消" >
+                <Typography.Paragraph>全量微信读书笔记，只会导出你的书架中并且有笔记的书籍。</Typography.Paragraph>
+                <Typography.Paragraph>有任何问题可以在插件关于页面联系三此君反馈问题，感谢支持。</Typography.Paragraph>
             </Modal>
         </>
     )
