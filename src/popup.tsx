@@ -10,7 +10,8 @@ const { Paragraph } = Typography;
 const AboutPageContent = () => {
   const popoverContent = {
     github: "三此君 GitHub",
-    bilibili: <img src="https://img2023.cnblogs.com/blog/2740513/202305/2740513-20230530083651756-1915761883.jpg" alt="视频B站首发" style={{ width: '150px', height: '150px' }} />,
+    bilibili: <img src="https://img2023.cnblogs.com/blog/2740513/202305/2740513-20230530083651756-1915761883.jpg" alt="Bilibili" style={{ width: '150px', height: '150px' }} />,
+    redbook: <img src="https://img2023.cnblogs.com/blog/2740513/202403/2740513-20240331101446193-184804471.jpg" alt="小红书" style={{ width: '150px', height: '150px' }} />,
     tiktok: <img src="https://img2023.cnblogs.com/blog/2740513/202305/2740513-20230529203236662-1716684994.jpg" alt="抖音" style={{ width: '150px', height: '150px' }} />,
     gzh: <img src="https://img2023.cnblogs.com/blog/2740513/202305/2740513-20230529203219168-2117666216.jpg" alt="公众号" style={{ width: '150px', height: '150px' }} />,
     wechat: <img src="https://img2023.cnblogs.com/blog/2740513/202305/2740513-20230529203303815-1142190090.jpg" alt="微信号" style={{ width: '150px', height: '150px' }} />,
@@ -43,14 +44,19 @@ const AboutPageContent = () => {
       </div>
 
       <div style={{ display: 'flex', marginTop: '12px' }}>
-        <Popover content={popoverContent.wechat} title="三此君微信号">
+        <Popover content={popoverContent.wechat} title="三此君个人微信">
           <Button type="text" style={{ padding: '5px', fontSize: '13px' }}>
-            联系作者：微信
+            微信号
           </Button>
         </Popover>
-        <Popover content={popoverContent.bilibili} title="视频在B站首发">
+        <Popover content={popoverContent.bilibili} title="三此君B站号">
           <Button type="text" icon={<FontAwesomeIcon icon={faBilibili} />} onClick={() => openLink("https://space.bilibili.com/96271327/")} style={{ padding: '5px', fontSize: '13px' }}>
             B站
+          </Button>
+        </Popover>
+        <Popover content={popoverContent.redbook} title="三此君小红书号">
+          <Button type="text" onClick={() => openLink("https://www.xiaohongshu.com/user/profile/5b81915b712ac00001e5ee82")} style={{ padding: '5px', fontSize: '13px' }}>
+            小红书
           </Button>
         </Popover>
         <Popover content={popoverContent.tiktok} title="三此君抖音号">
