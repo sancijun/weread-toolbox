@@ -24,7 +24,7 @@ export default class MarkmapClass extends Component<MarkmapClassProps> {
   };
 
   componentDidMount() {
-    this.mm = Markmap.create(this.svg);
+    this.mm = Markmap.create(this.svg, {maxWidth: 500, autoFit:true });
     this.updateSvg();
   }
 
@@ -36,6 +36,11 @@ export default class MarkmapClass extends Component<MarkmapClassProps> {
     const { root } = transformer.transform(this.content);
     this.mm.setData(root);
     this.mm.fit();
+    console.log('updateSvg', this.mm, this.mm.options, this.mm.svg, this.mm.getStyleContent());
+  };
+
+  getSvg = () => {
+    return this.svg;
   };
 
   render() {

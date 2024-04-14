@@ -2,7 +2,7 @@
   "name": "weread-toolbox",
   "displayName": "微信读书工具箱",
   "version": "0.0.6",
-  "description": "微信读书工具箱，支持导出图文 Markdown 笔记，同步 Notion 等。",
+  "description": "微信读书工具箱，支持导出图文 Markdown 笔记，导出思维导图，同步 Notion 等。",
   "author": "三此君",
   "packageManager": "npm@9.6.2",
   "scripts": {
@@ -22,6 +22,7 @@
     "crypto-js": "^4.1.1",
     "file-saver": "^2.0.5",
     "github-markdown-css": "^5.5.1",
+    "html2canvas": "^1.4.1",
     "jszip": "^3.10.1",
     "markdown-navbar": "^1.4.3",
     "markmap": "^0.6.1",
@@ -30,7 +31,10 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-markdown": "^8.0.7",
-    "remark-gfm": "^3.0.0"
+    "remark": "^15.0.1",
+    "remark-docx": "^0.1.6",
+    "remark-gfm": "^3.0.0",
+    "simple-pandoc": "^0.2.0"
   },
   "devDependencies": {
     "@fortawesome/free-brands-svg-icons": "^6.4.0",

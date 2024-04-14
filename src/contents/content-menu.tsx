@@ -19,6 +19,9 @@ import { exportBookMarks } from '~core/core-export-local';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Markmap from '../component/Markmap';
+import { unified } from "unified";
+import markdown from "remark-parse";
+import docx from "remark-docx";
 import 'github-markdown-css/github-markdown.css';
 
 
@@ -54,6 +57,7 @@ const Menu: React.FC = () => {
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [markdownContent, setMarkdownContent] = useState<string>('');
     const [api, contextHolder] = notification.useNotification();
+    const markmapRef = useRef<Markmap>(null);
     const initWidth = useRef(0);
 
     useEffect(() => {
@@ -189,7 +193,7 @@ const Menu: React.FC = () => {
             const isImageLoadedKey = `${getBookTile()}-isImageLoaded`;
             const isImageLoaded = await getLocalStorageData(isImageLoadedKey) as boolean;
             console.log('load image', isExportImage, isImageLoaded);
-            if (!isExportImage && isImageLoaded) {
+            if (!isExportImage) {
                 // 如果不强制导出图片，并且加载过图片，则不执行后续逻辑
                 resolve(undefined);
                 return;
@@ -299,15 +303,53 @@ const Menu: React.FC = () => {
             }
         });
     }
+    
+    function convertMarkdown(markdownText: string): string {
 
-    function downloadMarkdown(){
+        markdownText = markdownText.replace(/^---\s*[\s\S]+?---/m, '').trim()
+        const lines = markdownText.split('\n');
+        const convertedLines: string[] = [];
+        
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) {
+                // 忽略空行
+                continue;
+            }
+            let convertedLine = trimmedLine;
+            if (!trimmedLine.startsWith('#')) {
+                // 在非标题行开头添加 '- '
+                convertedLine = '- ' + trimmedLine;
+            }
+    
+            convertedLines.push(convertedLine);
+        }
+        return convertedLines.join('\n');
+    }
+    
+
+    function downloadMarkdown(isMarkmap: boolean){
         const title = getBookTile();
-        saveAs(new Blob([markdownContent], { type: 'text/plain' }), `${title}.md`)
+        const content = isMarkmap ? convertMarkdown(markdownContent) : markdownContent;
+        saveAs(new Blob([content], { type: 'text/plain' }), `${title}.md`)
         api['success']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》微信读书笔记已成功下载!`, duration: 10 });
     }
 
-    function copyMarkdown(){
-        copy(markdownContent).then(() => {
+    async function downloadDocx(){
+        try{
+            const title = getBookTile();
+            const processor = unified().use(markdown).use(docx, { output: "blob" });
+            const doc = await processor.process(convertMarkdown(markdownContent));
+            const blob = await doc.result;
+            saveAs(blob, `${title}.docx`);
+        }catch(e){
+            console.log('downloadImg error', e)
+        }
+    }
+
+    function copyMarkdown(isMarkmap: boolean){
+        const content = isMarkmap ? convertMarkdown(markdownContent) : markdownContent;
+        copy(content).then(() => {
             api['success']({ key: 'export', message: '导出微信读书笔记', description: `《${getBookTile()}》微信读书笔记已成功复制到剪贴板!`, duration: 10 });
         }); 
     }
@@ -332,13 +374,13 @@ const Menu: React.FC = () => {
                                 <Button type="text" onClick={() => setIsFullscreen(!isFullscreen)} icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}  />
                             </Tooltip>
                             <Tooltip placement="bottom" title='下载'>
-                                <Button type="text" onClick={downloadMarkdown} icon={<CloudDownloadOutlined />} />
+                                <Button type="text" onClick={downloadDocx} icon={<CloudDownloadOutlined />} />
                             </Tooltip>
                             <Tooltip placement="bottom" title='复制'>
-                                <Button type="text" onClick={copyMarkdown} icon={<CopyOutlined />} />
+                                <Button type="text" onClick={() => {copyMarkdown(true)}} icon={<CopyOutlined />} />
                             </Tooltip>
                         </Space>
-                        <Markmap initValue={markdownContent} ></Markmap>
+                        <Markmap ref={markmapRef} initValue={convertMarkdown(markdownContent)} ></Markmap>
                     </div>
                 ) : (
                     <div id="react-markdown-content">
@@ -347,10 +389,10 @@ const Menu: React.FC = () => {
                                 <Button type="text" onClick={() => setIsMarkmapModel(!isMarkmapModel)} icon={<RetweetOutlined />} />
                             </Tooltip>
                             <Tooltip placement="bottom" title='下载'>
-                                <Button type="text" onClick={downloadMarkdown} icon={<CloudDownloadOutlined />} />
+                                <Button type="text" onClick={() => downloadMarkdown(false)} icon={<CloudDownloadOutlined />} />
                             </Tooltip>
                             <Tooltip placement="bottom" title='复制'>
-                                <Button type="text" onClick={copyMarkdown} icon={<CopyOutlined />} />
+                                <Button type="text" onClick={() => copyMarkdown(false)} icon={<CopyOutlined />} />
                             </Tooltip>
                         </Space>
                         <div className="markdown-body">
