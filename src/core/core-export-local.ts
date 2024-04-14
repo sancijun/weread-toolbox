@@ -40,6 +40,7 @@ export async function exportBookMarks(bookId: string, bookTitle: string, isHot: 
         }
         res += traverseMarks(groupedMarks[chapterUid] || [], imgData);
     }
+    res += '\n#微信读书笔记\n\n';
     return res.replace(/●|•|\d+\. /g, '\n\n- ');
 }
 
