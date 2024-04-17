@@ -6,11 +6,12 @@ import {
     FireOutlined,
     CloudSyncOutlined,
     PlusCircleOutlined,
-    CopyOutlined,
-    CloudDownloadOutlined,
-    RetweetOutlined,
+    FileMarkdownOutlined,
+    FileTextOutlined,
     FullscreenOutlined,
     FullscreenExitOutlined,
+    FileWordOutlined,
+
 } from '@ant-design/icons';
 import type { PlasmoCSConfig } from 'plasmo';
 import { copy, getBookTile, getLocalStorageData, setScreen, simulateClick, sleep } from './content-utils';
@@ -19,9 +20,8 @@ import { exportBookMarks } from '~core/core-export-local';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Markmap from '../component/Markmap';
-import { unified } from "unified";
-import markdown from "remark-parse";
-import docx from "remark-docx";
+import MarkdownIt from 'markdown-it';
+import htmlToDocx from 'html-docx-js/dist/html-docx';
 import 'github-markdown-css/github-markdown.css';
 
 
@@ -59,6 +59,7 @@ const Menu: React.FC = () => {
     const [api, contextHolder] = notification.useNotification();
     const markmapRef = useRef<Markmap>(null);
     const initWidth = useRef(0);
+    const md = new MarkdownIt();
 
     useEffect(() => {
         // 初始化消息监听
@@ -122,7 +123,7 @@ const Menu: React.FC = () => {
             await loadImage();
             const bookId = await getLocalStorageData(`${title}-bookId`) as string;
             if (!bookId) {
-                api['error']({ key: 'export', message: '导出微信读书笔记', description: `信息缺失，请点击上一页(或下一页)，加载更多信息后重试！`, duration:  10 });
+                api['error']({ key: 'export', message: '导出微信读书笔记', description: `信息缺失，请点击上一页(或下一页)，加载更多信息后重试！`, duration: 10 });
                 return false;
             }
             const content = await exportBookMarks(bookId, title, false) as string;
@@ -131,7 +132,7 @@ const Menu: React.FC = () => {
             api['success']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》 全书标注已成功导出!`, duration: 5 });
         } catch (error) {
             console.error('Error occurred during export:', error);
-            api['error']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》全书标注导出失败！可联系三此君，反馈异常详情！${error}`, duration:  10 });
+            api['error']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》全书标注导出失败！可联系三此君，反馈异常详情！${error}`, duration: 10 });
         }
     }
 
@@ -143,7 +144,7 @@ const Menu: React.FC = () => {
             await loadImage();
             const bookId = await getLocalStorageData(`${title}-bookId`) as string;
             if (!bookId) {
-                api['error']({ key: 'export', message: '导出微信读书笔记', description: `信息缺失，请点击上一页(或下一页)，加载更多信息后重试！`, duration:  10 });
+                api['error']({ key: 'export', message: '导出微信读书笔记', description: `信息缺失，请点击上一页(或下一页)，加载更多信息后重试！`, duration: 10 });
                 return false;
             }
             const content = await exportBookMarks(bookId, title, true) as string;
@@ -229,7 +230,7 @@ const Menu: React.FC = () => {
             setTimeout(() => clickReaderFooterButton(resolve), 1000);
         } else {
             const isImageLoadedKey = `${getBookTile()}-isImageLoaded`;
-            chrome.storage.local.set({ [isImageLoadedKey]: true}, () => { console.log("image load success.");});
+            chrome.storage.local.set({ [isImageLoadedKey]: true }, () => { console.log("image load success."); });
             resolve(); // 图片加载完成，解析Promise
         }
     }
@@ -303,13 +304,13 @@ const Menu: React.FC = () => {
             }
         });
     }
-    
+
     function convertMarkdown(markdownText: string): string {
 
         markdownText = markdownText.replace(/^---\s*[\s\S]+?---/m, '').trim()
         const lines = markdownText.split('\n');
         const convertedLines: string[] = [];
-        
+
         for (const line of lines) {
             const trimmedLine = line.trim();
             if (!trimmedLine) {
@@ -321,38 +322,41 @@ const Menu: React.FC = () => {
                 // 在非标题行开头添加 '- '
                 convertedLine = '- ' + trimmedLine;
             }
-    
+
             convertedLines.push(convertedLine);
         }
         return convertedLines.join('\n');
     }
-    
 
-    function downloadMarkdown(isMarkmap: boolean){
+
+    function downloadMarkdown(isMarkmap: boolean) {
         const title = getBookTile();
         const content = isMarkmap ? convertMarkdown(markdownContent) : markdownContent;
         saveAs(new Blob([content], { type: 'text/plain' }), `${title}.md`)
         api['success']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》微信读书笔记已成功下载!`, duration: 10 });
     }
 
-    async function downloadDocx(){
-        try{
+    async function downloadDocx() {
+        try {
             const title = getBookTile();
-            const processor = unified().use(markdown).use(docx, { output: "blob" });
-            const doc = await processor.process(convertMarkdown(markdownContent));
-            const blob = await doc.result;
-            saveAs(blob, `${title}.docx`);
-        }catch(e){
+            const markdown = markdownContent.substring(markdownContent.indexOf('## '))
+            const htmlContent = md.render(markdown);
+            const docxBlob = htmlToDocx.asBlob(htmlContent);
+            saveAs(docxBlob, `${title}.docx`);
+            api['success']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》微信读书笔记已成功下载! 如果 Word 文档导入 Xmind 提示错误，请打开文档，（输入任意内容）保存后重新导入 Xmind。`, duration: 10 });
+        } catch (e) {
             console.log('downloadImg error', e)
         }
     }
 
-    function copyMarkdown(isMarkmap: boolean){
+    function copyMarkdown(isMarkmap: boolean) {
         const content = isMarkmap ? convertMarkdown(markdownContent) : markdownContent;
         copy(content).then(() => {
             api['success']({ key: 'export', message: '导出微信读书笔记', description: `《${getBookTile()}》微信读书笔记已成功复制到剪贴板!`, duration: 10 });
-        }); 
+        });
     }
+
+    const MindMapIcon = () => (<svg viewBox="64 64 896 896" focusable="false" width="1em" height="1em" fill="currentColor" aria-hidden="true" ><path d="M981.333333 473.173333H564.053333a42.666667 42.666667 0 0 0 0 85.333334h417.28a42.666667 42.666667 0 0 0 0-85.333334zM981.333333 838.186667H564.053333a42.666667 42.666667 0 0 0 0 85.333333h417.28a42.666667 42.666667 0 0 0 0-85.333333zM564.053333 193.493333h417.28a42.666667 42.666667 0 0 0 0-85.333333H564.053333a42.666667 42.666667 0 0 0 0 85.333333zM398.293333 515.84a42.666667 42.666667 0 0 0-42.666666-42.666667h-89.173334a526.933333 526.933333 0 0 0 27.52-117.12c13.653333-88.96 26.24-149.333333 75.093334-164.906666a42.666667 42.666667 0 1 0-27.093334-80.853334c-101.76 33.92-118.826667 144.213333-132.48 232.746667-15.146667 99.2-25.813333 130.133333-62.506666 130.133333H42.666667a42.666667 42.666667 0 0 0 0 85.333334h104.32c36.693333 0 47.36 30.933333 62.506666 130.133333 13.653333 88.533333 30.72 198.613333 132.48 232.746667a42.666667 42.666667 0 0 0 13.653334 2.133333 42.666667 42.666667 0 0 0 13.44-83.2c-48.853333-16.213333-61.44-75.733333-75.093334-164.693333a526.933333 526.933333 0 0 0-27.52-117.12h89.173334a42.666667 42.666667 0 0 0 42.666666-42.666667z" fill="#5B5B5B" p-id="5383"></path></svg>);
 
     return (
         <>
@@ -363,21 +367,21 @@ const Menu: React.FC = () => {
                 <FloatButton onClick={() => onClickExportToNotion()} icon={<CloudSyncOutlined />} tooltip={<div>同步Notion</div>} className="readerControls_item" />
                 <FloatButton onClick={() => onClickSetScreen()} icon={<PlusCircleOutlined />} tooltip={<div>调整屏幕宽度</div>} className="readerControls_item" />
             </FloatButton.Group>
-            <Modal title={`微信读书工具箱 |《${getBookTile()}》笔记`} open={isModalOpen} width={isFullscreen ? "100%" : "50%"} style={{ height: isFullscreen ? "100vh" : "auto", top: 10  }} onCancel={() => setIsModalOpen(false)} footer={null}>
+            <Modal title={`微信读书工具箱 |《${getBookTile()}》笔记`} open={isModalOpen} width={isFullscreen ? "100%" : "50%"} style={{ height: isFullscreen ? "100vh" : "auto", top: 10 }} onCancel={() => setIsModalOpen(false)} footer={null}>
                 {isMarkmapModel ? (
                     <div id="react-markmap-content" >
                         <Space style={{ float: "right", marginTop: "-40px", marginRight: "30px" }}>
-                            <Tooltip placement="bottom" title='转换'>
-                                <Button type="text" onClick={() => setIsMarkmapModel(!isMarkmapModel)} icon={<RetweetOutlined />} />
+                            <Tooltip placement="bottom" title='文档视图'>
+                                <Button type="text" onClick={() => setIsMarkmapModel(!isMarkmapModel)} icon={<FileTextOutlined />} />
                             </Tooltip>
-                            <Tooltip placement="bottom" title={isFullscreen ? '退出全屏' : '全屏'}>
-                                <Button type="text" onClick={() => setIsFullscreen(!isFullscreen)} icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}  />
+                            <Tooltip placement="bottom" title='下载Markdown文档'>
+                                <Button type="text" onClick={() => downloadMarkdown(false)} icon={<FileMarkdownOutlined />} />
                             </Tooltip>
-                            <Tooltip placement="bottom" title='下载'>
-                                <Button type="text" onClick={downloadDocx} icon={<CloudDownloadOutlined />} />
+                            <Tooltip placement="bottom" title='下载Word文档'>
+                                <Button type="text" onClick={downloadDocx} icon={<FileWordOutlined />} />
                             </Tooltip>
-                            <Tooltip placement="bottom" title='复制'>
-                                <Button type="text" onClick={() => {copyMarkdown(true)}} icon={<CopyOutlined />} />
+                            <Tooltip placement="bottom" title={isFullscreen ? '退出全屏' : '全屏模式'}>
+                                <Button type="text" onClick={() => setIsFullscreen(!isFullscreen)} icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />} />
                             </Tooltip>
                         </Space>
                         <Markmap ref={markmapRef} initValue={convertMarkdown(markdownContent)} ></Markmap>
@@ -385,14 +389,14 @@ const Menu: React.FC = () => {
                 ) : (
                     <div id="react-markdown-content">
                         <Space style={{ float: "right", marginTop: "-40px", marginRight: "30px" }}>
-                            <Tooltip placement="bottom" title='转换'>
-                                <Button type="text" onClick={() => setIsMarkmapModel(!isMarkmapModel)} icon={<RetweetOutlined />} />
+                            <Tooltip placement="bottom" title='思维导图'>
+                                <Button type="text" onClick={() => setIsMarkmapModel(!isMarkmapModel)} icon={<MindMapIcon />} />
                             </Tooltip>
-                            <Tooltip placement="bottom" title='下载'>
-                                <Button type="text" onClick={() => downloadMarkdown(false)} icon={<CloudDownloadOutlined />} />
+                            <Tooltip placement="bottom" title='下载Markdown文档'>
+                                <Button type="text" onClick={() => downloadMarkdown(false)} icon={<FileMarkdownOutlined />} />
                             </Tooltip>
-                            <Tooltip placement="bottom" title='复制'>
-                                <Button type="text" onClick={() => copyMarkdown(false)} icon={<CopyOutlined />} />
+                            <Tooltip placement="bottom" title='下载Word文档'>
+                                <Button type="text" onClick={downloadDocx} icon={<FileWordOutlined />} />
                             </Tooltip>
                         </Space>
                         <div className="markdown-body">
