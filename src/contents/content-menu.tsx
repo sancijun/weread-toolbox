@@ -21,7 +21,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Markmap from '../component/Markmap';
 import MarkdownIt from 'markdown-it';
-import htmlToDocx from 'html-docx-js/dist/html-docx';
+import { asBlob } from 'html-docx-js-typescript'
 import 'github-markdown-css/github-markdown.css';
 
 
@@ -341,7 +341,7 @@ const Menu: React.FC = () => {
             const title = getBookTile();
             const markdown = markdownContent.substring(markdownContent.indexOf('## '))
             const htmlContent = md.render(markdown);
-            const docxBlob = htmlToDocx.asBlob(htmlContent);
+            const docxBlob = await asBlob(htmlContent);
             saveAs(docxBlob, `${title}.docx`);
             api['success']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》微信读书笔记已成功下载! 如果 Word 文档导入 Xmind 提示错误，请打开文档，（输入任意内容）保存后重新导入 Xmind。`, duration: 10 });
         } catch (e) {
@@ -375,7 +375,7 @@ const Menu: React.FC = () => {
                                 <Button type="text" onClick={() => setIsMarkmapModel(!isMarkmapModel)} icon={<FileTextOutlined />} />
                             </Tooltip>
                             <Tooltip placement="bottom" title='下载Markdown文档'>
-                                <Button type="text" onClick={() => downloadMarkdown(false)} icon={<FileMarkdownOutlined />} />
+                                <Button type="text" onClick={() => downloadMarkdown(true)} icon={<FileMarkdownOutlined />} />
                             </Tooltip>
                             <Tooltip placement="bottom" title='下载Word文档'>
                                 <Button type="text" onClick={downloadDocx} icon={<FileWordOutlined />} />

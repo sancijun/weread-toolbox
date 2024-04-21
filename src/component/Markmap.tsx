@@ -24,7 +24,7 @@ export default class MarkmapClass extends Component<MarkmapClassProps> {
   };
 
   componentDidMount() {
-    this.mm = Markmap.create(this.svg, {maxWidth: 500, autoFit:true });
+    this.mm = Markmap.create(this.svg, {initialExpandLevel: 3});
     this.updateSvg();
   }
 
