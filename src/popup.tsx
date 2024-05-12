@@ -81,11 +81,11 @@ function SettingsPageContent() {
 
   useEffect(() => {
     chrome.storage.local.get(
-      ["databaseId", "notionToken", "isExportImage"],
+      ["databaseUrl", "notionToken", "isExportImage"],
       (result) => {
-        const { databaseId, notionToken, isExportImage } = result;
-        if (databaseId) {
-          form.setFieldsValue({ databaseId });
+        const { databaseUrl, notionToken, isExportImage } = result;
+        if (databaseUrl) {
+          form.setFieldsValue({ databaseUrl });
         }
         if (notionToken) {
           form.setFieldsValue({ notionToken });
@@ -123,16 +123,16 @@ function SettingsPageContent() {
       <Item
         label={
           <span>
-            Database ID&nbsp;
-            <Tooltip title="点击关于->使用说明，查看如何获取 Notion Database ID">
+            Database Link&nbsp;
+            <Tooltip title="点击关于->使用说明，查看如何获取 Database Link">
               <QuestionCircleOutlined />
             </Tooltip>
           </span>
         }
-        name="databaseId"
-        rules={[{ required: true, message: "Please enter the Database ID" }]}
+        name="databaseUrl"
+        rules={[{ required: true, message: "Please enter the Database Link" }]}
       >
-        <Input placeholder="请输入 Notion Database ID" />
+        <Input placeholder="请输入 Database Link" />
       </Item>
       <Item
         label={

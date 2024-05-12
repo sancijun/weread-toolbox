@@ -49,11 +49,11 @@ const Exporter: React.FC = () => {
     async function showModal() {
         setIsModalOpen(true);
         chrome.storage.local.get(
-            ["databaseId", "notionToken"],
+            ["databaseUrl", "notionToken"],
             (result) => {
-                const { databaseId, notionToken } = result;
-                if (databaseId) {
-                    form.setFieldsValue({ databaseId });
+                const { databaseUrl, notionToken } = result;
+                if (databaseUrl) {
+                    form.setFieldsValue({ databaseUrl });
                 }
                 if (notionToken) {
                     form.setFieldsValue({ notionToken });
@@ -64,13 +64,13 @@ const Exporter: React.FC = () => {
 
     async function onClickExportAllToNotion() {
         setIsModalOpen(false);
-        const { databaseId, notionToken } = form.getFieldsValue();
-        if (!databaseId || !notionToken) {
+        const { databaseUrl, notionToken } = form.getFieldsValue();
+        if (!databaseUrl || !notionToken) {
             api['error']({key: 'export', message: '全量导出微信读书笔记', description: '请先查看使用说明，设置 Notion Database ID, Notion Token！', duration: null });
             return;
         }
-        console.log('onClickExportAllToLocal', databaseId, notification);
-        chrome.runtime.sendMessage({ type: "exportAllToNotion", databaseId: databaseId, notionToken: notionToken }, (resp) => {console.log('exportAllToNotion', resp);});
+        console.log('onClickExportAllToLocal', databaseUrl, notification);
+        chrome.runtime.sendMessage({ type: "exportAllToNotion", databaseUrl: databaseUrl, notionToken: notionToken }, (resp) => {console.log('exportAllToNotion', resp);});
     }
 
     async function onClickExportAllToLocal() {

@@ -1,6 +1,7 @@
 import { fetchBestBookmarks, fetchBookInfo, fetchBookmarks, fetchChapInfos, fetchReadInfo, fetchReviews, fetchShelfData } from "~core/core-weread-api";
 import { Client } from '@notionhq/client';
-import { calculateBookStrId, getActiveTabId, getLocalStorageData, sendMessage, sleep } from "./core-utils";
+import { calculateBookStrId, getActiveTabId, getLocalStorageData, parseDatabseId, sendMessage, sleep } from "./core-utils";
+import { parse } from "path";
 
 /**
  * 导出笔记到 Notion
@@ -10,7 +11,9 @@ import { calculateBookStrId, getActiveTabId, getLocalStorageData, sendMessage, s
  */
 export async function exportToNotion(bookTitle: string, isHot: boolean, curChapterTitle?: string) {
     try {
-        const databaseId = await getLocalStorageData('databaseId') as string;
+        const databaseUrl = await getLocalStorageData('databaseUrl') as string;
+        const databaseId = parseDatabseId(databaseUrl);
+        console.log('databaseId', databaseId, 'databaseUrl', databaseUrl);
         const notionToken = await getLocalStorageData('notionToken') as string;
         const bookId = await getLocalStorageData(`${bookTitle}-bookId`) as string;
         console.log('databaseId', databaseId, 'notionToken', notionToken, 'bookId', bookId);
@@ -24,9 +27,9 @@ export async function exportToNotion(bookTitle: string, isHot: boolean, curChapt
         console.log('insert to notion id=', id);
         const children = await getNotionChildrens(bookTitle, isHot, curChapterTitle);
         await addChildren(client, id, children);
-        return true;
+        return id.replace(/-/g, '');
     } catch (error) {
-        sendMessage({ message: { alert: '导出失败，请检查 Notion 设置是否正确。可联系三此君，反馈异常详情！' } });
+        sendMessage({ message: { alert: `请检查 Notion 设置是否正确。可联系三此君，反馈异常详情！${error}` } });
         console.error("exportToNotion error:", error);
         return false;
     }

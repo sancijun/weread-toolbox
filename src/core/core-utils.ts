@@ -104,4 +104,11 @@ function formatTimestamp(timestamp: number): string {
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
-export { sendMessage, getLocalStorageData, sleep, getActiveTabId, calculateBookStrId, formatTimestamp }
+function parseDatabseId(url: string): string | null {
+    const parts = url.split('/');
+    const lastPart = parts[parts.length - 1];
+    const databaseUrl = lastPart.split(/[?#]/)[0];
+    return databaseUrl || null;
+}
+
+export { sendMessage, getLocalStorageData, sleep, getActiveTabId, calculateBookStrId, formatTimestamp, parseDatabseId }

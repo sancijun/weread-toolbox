@@ -70,8 +70,6 @@ const Menu: React.FC = () => {
         window.addEventListener("contextmenu", function (t) {
             t.stopImmediatePropagation();
         }, true);
-        // 隐藏下载按钮
-        document.querySelector(".readerControls_item.download").style.display = "none";
         // 获取 app_content 宽度
         const appContentElement = document.querySelector('.app_content');
         if (appContentElement) {
@@ -91,7 +89,7 @@ const Menu: React.FC = () => {
     const openChange = (open) => {
         const parentElement = document.querySelector('.readerControls');
         let childElements = Array.from(parentElement.children);
-        childElements = childElements.slice(0, childElements.length - 2);
+        childElements = childElements.slice(0, childElements.length - 1);
 
         if (open) {
             childElements.forEach((element) => element.style.visibility = 'hidden') // 设置元素隐藏
@@ -161,11 +159,11 @@ const Menu: React.FC = () => {
     async function onClickExportToNotion() {
         const title = getBookTile();
         try {
-            // 检查 databaseId 和 notionToken 是否为空
-            const databaseId = await getLocalStorageData('databaseId') as string;
+            // 检查 databaseUrl 和 notionToken 是否为空
+            const databaseUrl = await getLocalStorageData('databaseUrl') as string;
             const notionToken = await getLocalStorageData('notionToken') as string;
-            if (!databaseId || !notionToken) {
-                api['error']({ key: 'export', message: '导出微信读书笔记', description: '请先查看使用说明，设置 Notion Database ID, Notion Token！', duration: null });
+            if (!databaseUrl || !databaseUrl.startsWith('http') || !notionToken) {
+                api['error']({ key: 'export', message: '导出微信读书笔记', description: '请先查看使用说明，设置 Database Link (请填入 http 开头的完成链接), Notion Token！', duration: null });
                 return;
             }
             api['info']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》微信读书笔记导出中，请稍等...`, duration: null });
@@ -175,7 +173,11 @@ const Menu: React.FC = () => {
             chrome.runtime.sendMessage({ type: "exportToNotion", title: title }, function (resp) {
                 console.log('exportToNotion', resp);
                 if (resp.content) {
+                    console.log('exportToNotion', resp.content)
                     api['success']({ key: 'export', message: '微信读书笔记', description: `《${title}》微信读书笔记已同步到 Notion!`, duration: null });
+                    const url = databaseUrl.includes('?') ? `${databaseUrl}&p=${resp.content}` : `${databaseUrl}?p=${resp.content}`
+                    console.log(url);
+                    window.open(url, '_blank');
                 } else {
                     api['error']({ key: 'export', message: '导出微信读书笔记', description: `《${title}》微信读书笔记同步 Notion 失败!`, duration: null });
                 }
@@ -207,22 +209,27 @@ const Menu: React.FC = () => {
                 if (readerCatalog) {
                     readerCatalog.removeAttribute('style');
                     simulateClick(document.querySelector('.readerCatalog_list_item'));
-                    readerCatalog.setAttribute('style', 'display: none;');
                 }
+                const chapterSize = document.querySelectorAll('.readerCatalog_list_item').length;
+                for (let i = 0; i < chapterSize; i++) {
+                    const chapter = document.querySelectorAll('.readerCatalog_list_item')[i];
+                    await simulateClick(chapter);
+                    await sleep(1000);
+                }
+                readerCatalog.setAttribute('style', 'display: none;');
                 simulateClick(catalogItem);
-
             } catch (error) {
                 console.log('simulateClick catalogItem error: ', error);
             }
-            await sleep(1000); // 等待数据加载完成
+            resolve(undefined);
             // 点击下一章直到最后
-            clickReaderFooterButton(resolve);
+            // clickReaderFooterButton(resolve);
         });
     }
 
     // 点击下一章直到最后
     function clickReaderFooterButton(resolve) {
-        const nextPageButton = document.querySelector('.readerFooter_button');
+        const nextPageButton = document.querySelector('.readerFooter_button, .renderTarget_pager_button_right');
         console.log('nextPageButton', nextPageButton);
         if (nextPageButton) {
             var evt = new MouseEvent("click", { bubbles: true, cancelable: true, clientX: 100, clientY: 100 });
@@ -283,7 +290,7 @@ const Menu: React.FC = () => {
         // 监听 service worker 消息
         chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
             if (msg.alert) {
-                api['error']({ key: 'export', message: '导出微信读书笔记', description: msg.alter });
+                api['error']({ key: 'export', message: '导出微信读书笔记', description: `《${getBookTile()}》微信读书笔记同步 Notion 失败: ${msg.alert}`, duration: null });
                 sendResponse({ succ: 1 });
             } else if (msg.content) {
                 copy(msg.content);

@@ -7,16 +7,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     let tabId: number | undefined;
     if (sender && sender.tab) tabId = sender.tab.id;
     switch (msg.type) {
-        case "exportBookMarks":
-            exportBookMarks(msg.title, false).then((content) => {
-                sendResponse({ content: content });
-            });
-            return true;
-        case "exportHotBookMarks":
-            exportBookMarks(msg.title, true).then((content) => {
-                sendResponse({ content: content });
-            });
-            return true;
         case "exportToNotion":
             exportToNotion(msg.title, false).then((content) => {
                 sendResponse({ content: content });
