@@ -63,7 +63,7 @@ function traverseMarks(marks: any[], chapterImgData: { [key: string]: string }) 
             // 将想法添加到对应标注之后
             prevMarkText = mark.abstract;
             res += thouAbstract + thouContent;
-        } else if (mark.markText.includes("[插图]") && chapterImgData) { // 插图
+        } else if (mark.markText?.includes("[插图]") && chapterImgData) { // 插图
             let imgData = findImagesInRange(chapterImgData, mark.range);
             let index = 0;
             res += mark.markText.replace(/\[插图\]/g, (match: string) => {
