@@ -32,7 +32,7 @@ const getContainer = async () => {
     try {
         await sleep(300)
         let container = document.querySelector('.readerControls');
-        const menuContainer = document.createElement('div');
+        const menuContainer = document.createElement('button');
         menuContainer.classList.add('readerControls_item');
         container.appendChild(menuContainer);
         return menuContainer;
@@ -61,7 +61,7 @@ const Menu: React.FC = () => {
             t.stopImmediatePropagation();
         }, true);
         // 隐藏下载按钮
-        document.querySelector(".readerControls_item.download").style.display = "none";
+        //document.querySelector(".readerControls_item.download").style.display = "none";
         // 获取 app_content 宽度
         const appContentElement = document.querySelector('.app_content');
         if (appContentElement) {
